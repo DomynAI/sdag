@@ -1,0 +1,50 @@
+site_name: sdag
+repo_url: https://github.com/igeniusai/sdag
+repo_name: igeniusai/sdag
+theme:
+  font:
+    text: DM Sans
+  name: material
+  custom_dir: docs/override
+  logo: assets/domyn-white-logo.svg
+  favicon: assets/domyn-favicon-512x512.png
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - content.code.copy
+    - content.code.select
+    - content.code.annotate
+
+  palette:
+    - scheme: default
+      toggle:
+        icon: gfonts/wb_sunny
+        name: Switch to dark mode
+
+    - scheme: slate
+      toggle:
+        icon: gfonts/bedtime
+        name: Switch to light mode
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+  - mkdocstrings
+  - literate-nav:
+      nav_file: summary.md

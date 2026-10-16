@@ -1,0 +1,151 @@
+[project]
+name = "sdag"
+version = "0.3.0"
+description = "DAGs for Slurm"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+keywords = ["pipeline", "dag", "workflows", "slurm", "hpc"]
+readme = "README.md"
+authors = [
+    { name = "Alessandro Rognoni", email = "alessandro.rognoni@domyn.com" }
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Rust",
+    "Topic :: System :: Distributed Computing",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.13.3",
+    "pydantic-settings>=2.14.0",
+    "strenum>=0.4.15 ; python_version < '3.11'",
+    "tomli >= 1.1.0 ; python_version < '3.11'",
+]
+
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+python-source = "python"
+module-name = "sdag.core"
+strip = true
+
+[tool.ruff]
+line-length = 79
+extend-exclude = [".ipynb_checkpoints", "docs"]
+
+[tool.ruff.lint]
+select = [
+    "F",
+    "E",
+    "W",
+    "C90",
+    "I",
+    "N",
+    "D",
+    "UP",
+    "YTT",
+    "BLE",
+    "FBT",
+    "B",
+    "B9",
+    "A",
+    "C4",
+    "T10",
+    "EM",
+    "ISC",
+    "ICN",
+    "LOG",
+    "G",
+    "PT",
+    "RSE",
+    "RET",
+    "SLF",
+    "SIM",
+    "ARG",
+    "PTH",
+    "TRY",
+    "NPY",
+    "PERF",
+    "RUF",
+]
+ignore = [
+    # Missing docstring in public package
+    "D100",
+    # Missing docstring in public module
+    "D104",
+    # Not supported by Pydantic
+    "UP046",
+    # Caching default value is set in the decorator
+    "FBT001",
+]
+
+[tool.ruff.lint.extend-per-file-ignores]
+# ignore unused imports
+"__init__.py" = ["F401"]
+# ignore pydocstyle rules for tests
+# Tests can access private functions
+"tests/*" = ["D", "SLF001"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pyright]
+include = ["python", "tests"]
+exclude = [
+    "**/__pycache__",
+    ".venv",
+    "**/node_modules",
+    "**/.*",
+]
+defineConstant = { DEBUG = true }
+reportMissingImports = "error"
+reportMissingTypeStubs = false
+
+pythonPlatform = "Linux"
+venvPath = "."
+venv = ".venv"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.2.0",
+]
+docs = [
+    "mkdocs>=1.6.1",
+    "mkdocs-literate-nav>=0.6.3",
+    "mkdocs-material>=9.7.7",
+    "mkdocstrings>=1.0.6",
+    "mkdocstrings-python>=2.0.8",
+]
+test = [
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+]
+viz = [
+    "neo4j-viz>=1.4.0",
+]
+
+[project.scripts]
+sdag = "sdag.entrypoints:cli"
+sdag-execute = "sdag.entrypoints:sdag_execute"
+
+[project.entry-points."uv.run"]
+sdag = "sdag.entrypoints:cli"
+sdag-execute = "sdag.entrypoints:sdag_execute"
+
+[tool.sdag]
+dag-dir = "./examples"
+log-level = "info"
