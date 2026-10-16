@@ -211,6 +211,17 @@ class ParserBuilder:
             ),
         )
 
+        prune_parser.add_argument(
+            "--cascade",
+            action=BooleanOptionalAction,
+            default=False,
+            help=(
+                "Delete the cache of all dependent nodes in the graph."
+                " It is considered if both tasks and pipeline have been"
+                " specified"
+            ),
+        )
+
         self._add_extra_metadata(prune_parser)
         self._add_log_level(prune_parser)
         self._add_detach(prune_parser)

@@ -14,37 +14,20 @@ from pathlib import Path
 from typing import Any
 
 import sdag.core as core
+from sdag.cache_pruning import (
+    find_all_cacheable_tasks,
+    find_all_cascade_cacheable_tasks,
+    find_matching_cacheable_tasks,
+)
 from sdag.compiler import master
 from sdag.discovery import find_all_pipelines, find_pipeline_by_name
 from sdag.exceptions import DAGNotFoundError, ExtraCLIArgsError
-from sdag.models import DAG, CacheableTask, Kwarg, TaskNode
+from sdag.models import DAG, Kwarg, TaskNode
 from sdag.pyproj import apply_pyproj_configs, apply_pyproj_to_task, get_pyproj
 from sdag.settings import configure_logging
 from sdag.wrappers import Task
 
 logger = logging.getLogger(__name__)
-
-
-def _find_cacheable_tasks(dag: DAG) -> list[CacheableTask]:
-    """Find tasks with caching enabled.
-
-    Args:
-        dag (DAG): DAG.
-        scope (Literal["local", "global"]): Task scope.
-
-    Returns:
-        list[CacheableTask]: Info about tasks with caching
-            enabled.
-    """
-    tasks: list[CacheableTask] = []
-    for node in dag.nodes:
-        if node.kind == "task" and node.cache:
-            cacheable = CacheableTask(
-                name=node.name, pipeline=node.pipeline_name, scope=node.scope
-            )
-            tasks.append(cacheable)
-
-    return tasks
 
 
 def compile_and_return_dag(
@@ -335,35 +318,37 @@ def prune_cache(args: Namespace, extras: dict[str, Any]) -> None:
     pyproj.join_cli_args(args)
     configure_logging(pyproj.log_level)
 
-    if args.pipeline is not None and not args.task:
-        dag = _get_dag_from_name_import_or_json(
-            path=args.pipeline,
-            extra_metadata=args.extra_metadata,
-            input_kwargs=extras,
-        )
-
-        tasks = _find_cacheable_tasks(dag)
-        for task in tasks:
-            pipeline_name = task.pipeline if task.scope == "local" else None
-            core.prune_cache(
-                task_name=task.name,
-                pipeline_name=pipeline_name,
-                allow_full_prune=False,
-                log_level=pyproj.log_level,
-            )
-
-    else:
-        name = args.pipeline
-        if name is not None and ":" in name:
-            name = name.split(":")[-1]
-
+    if args.pipeline is None:
         for task in args.task:
             core.prune_cache(
                 task_name=task,
-                pipeline_name=name,
+                pipeline_name=args.pipeline,
                 allow_full_prune=True,
                 log_level=pyproj.log_level,
             )
+        return
+
+    dag = _get_dag_from_name_import_or_json(
+        path=args.pipeline,
+        extra_metadata=args.extra_metadata,
+        input_kwargs=extras,
+    )
+
+    if not args.tasks:
+        tasks = find_all_cacheable_tasks(dag)
+    elif args.cascade:
+        tasks = find_all_cascade_cacheable_tasks(dag, args.tasks)
+    else:
+        tasks = find_matching_cacheable_tasks(dag, args.tasks)
+
+    for task in tasks:
+        pipeline_name = task.pipeline if task.scope == "local" else None
+        core.prune_cache(
+            task_name=task.name,
+            pipeline_name=pipeline_name,
+            allow_full_prune=False,
+            log_level=pyproj.log_level,
+        )
 
 
 def view_pipeline(args: Namespace, extras: dict[str, Any]) -> None:
