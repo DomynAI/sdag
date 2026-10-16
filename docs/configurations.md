@@ -8,10 +8,10 @@ Configurations must be set under `[tool.sdag]`. Here are the available options:
 
 | Option                       | Default value          | Description |
 |------------------------------|------------------------|-------------|
-| dag-dir                      | "."                    | Path where pipelines are searched. |
-| compiled-dag-dir             | "./compiled-pipelines" | Compiled pipeline destination path. |
+| dagdir                       | "."                    | Path where pipelines are searched. |
+| compiled-dagdir              | "./compiled-pipelines" | Compiled pipeline destination path. |
 | local                        | false                  | If true, compile all tasks as local bash processes |
-| prepend-compiled-dag-dir     | true                   | Prepend the `compiled-dag-dir` so you can write `sdag run dag.json` instead of `sdag run ./compiled-pipelines/dag.json` |
+| prepend-compiled-dagdir      | true                   | Prepend the `compiled-dagdir` so you can write `sdag run dag.json` instead of `sdag run ./compiled-pipelines/dag.json` |
 | log-level                    | "info"                 | Compiler, scheduler, and task log level |
 | time_between_polls           | 5                      | Time between successive scheduler Slurm polls (seconds) |
 | max-concurrency              | 0                      | Maximum number of tasks running at the same time. Set to zero to allow any number of tasks to run at the same time |
@@ -20,6 +20,7 @@ Configurations must be set under `[tool.sdag]`. Here are the available options:
 | fail-fast                    | false                  | If true, kill the scheduler and all running jobs if any task fails. |
 | envs                         | {}                     | Environment variables that will be available to every task |
 | detach                       | Check out the [Detaching Commands](advanced/detaching.md) section for details | Sbatch options for detached jobs. |
+| extra_dagdirs                | []                     | Import strings in the form 'path.to.module' of extra packages pipelines will be searched into. Useful to import pipelines from dependencies. |
 
 In the `pyproject.toml` file you can also set a number of Sbatch options that will override those set in scripts or inside pipelines:
 
@@ -48,7 +49,7 @@ If available, this file located in the main project directory. It has the exact 
 
     ```toml
     [tool.sdag]
-    dag-dir = "my_package/workflows"
+    dagdir = "my_package/workflows"
     max-concurrency = 10
 
     [tool.sdag.envs]
@@ -65,7 +66,7 @@ If available, this file located in the main project directory. It has the exact 
 === "`.sdag.toml`"
 
     ```toml
-    dag-dir = "my_package/workflows"
+    dagdir = "my_package/workflows"
     max-concurrency = 10
 
     [envs]
