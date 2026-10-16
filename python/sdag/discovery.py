@@ -15,7 +15,7 @@ from pathlib import Path
 
 from sdag.compiler import master
 from sdag.exceptions import DAGNotFoundError
-from sdag.pyproj import get_pyproj
+from sdag.pyproj import Pyproj, get_pyproj
 from sdag.wrappers import Pipeline
 
 logger = logging.getLogger(__name__)
@@ -75,9 +75,27 @@ def find_all_pipelines() -> dict[str, str]:
     Returns:
         dict[str, str]: Pipeline names and paths.
     """
+    pyproj = get_pyproj()
+    dagdir = _get_dagdir(pyproj)
+    extra_dagdirs = _get_extra_dagdirs(pyproj)
+    pipelines = find_all_pipelines_in_tree(dagdir)
+    for extra_dagdir in extra_dagdirs:
+        path = _import_extra_dagdir_and_get_path(extra_dagdir)
+        if path is not None:
+            imported_pipelines = find_all_pipelines_in_tree(path)
+            pipelines = imported_pipelines | pipelines
+
+    return pipelines
+
+
+def find_all_pipelines_in_tree(dagdir: str) -> dict[str, str]:
+    """Parse the ast to find pipelines.
+
+    Returns:
+        dict[str, str]: Pipeline names and paths.
+    """
     pipelines: dict[str, str] = {}
-    dag_dir = _find_dag_dir()
-    for path in Path(dag_dir).rglob("**/*.py"):
+    for path in Path(dagdir).rglob("**/*.py"):
         tree = ast.parse(path.read_text())
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef):
@@ -86,6 +104,32 @@ def find_all_pipelines() -> dict[str, str]:
                     if name == "pipeline":
                         pipelines[node.name] = str(path)
     return pipelines
+
+
+def _import_extra_dagdir_and_get_path(extra_dagdir: str) -> str | None:
+    """Import an extra dagdir and get its path.
+
+    Args:
+        extra_dagdir (str): _description_
+
+    Returns:
+        str | None: _description_
+    """
+    try:
+        m = importlib.import_module(extra_dagdir)
+    except ImportError:
+        logger.exception("Failed to import dagdir '%s'", extra_dagdir)
+        return None
+
+    if m.__file__ is None:
+        return None
+
+    # __file__ is the __init__.py of the package
+    path = Path(m.__file__)
+    if path.is_file():
+        return str(path.parent)
+
+    return m.__file__
 
 
 def get_importable_module_path(path: Path) -> str:
@@ -120,40 +164,38 @@ def _find_module_path(name: str) -> str:
     Returns:
         str: MOdule path.
     """
-    dag_dir = _find_dag_dir()
-    path = _find_pipeline_path(name, dag_dir)
-    if path is None:
-        msg = f"Module for pipeline '{name}' not found"
-        raise DAGNotFoundError(msg)
-    return get_importable_module_path(path)
-
-
-def _find_dag_dir() -> str:
-    """Find the DAG directory.
-
-    ./pipelines by default but it can be modified
-    in the pyproject.toml.
-
-    Returns:
-        str: DAG directory.
-    """
     pyproj = get_pyproj()
-    logger.info("Pipelines are searched in: `%s`", pyproj.dag_dir)
-    return pyproj.dag_dir
+    dagdir = _get_dagdir(pyproj)
+    extra_dagdirs = _get_extra_dagdirs(pyproj)
+    path = _find_pipeline_path(name, dagdir)
+    if path is not None:
+        return get_importable_module_path(path)
+
+    for extra_dagdir in extra_dagdirs:
+        base_path = _import_extra_dagdir_and_get_path(extra_dagdir)
+        if base_path is not None:
+            path = _find_pipeline_path(name, base_path)
+            if path:
+                return _find_extra_pipeline_import_path(
+                    extra_dagdir, base_path, path
+                )
+
+    msg = f"Module for pipeline '{name}' not found"
+    raise DAGNotFoundError(msg)
 
 
-def _find_pipeline_path(name: str, dag_dir: str) -> Path | None:
+def _find_pipeline_path(name: str, dagdir: str) -> Path | None:
     """Find the pipeline path inside the DAG directory.
 
     Args:
         name (str): Pipeline name.
-        dag_dir (str): DAG directory.
+        dagdir (str): DAG directory.
 
     Returns:
         Path | None: Pipeline path. Returns None if the pipeline
             is not found.
     """
-    for path in Path(dag_dir).rglob("**/*.py"):
+    for path in Path(dagdir).rglob("**/*.py"):
         try:
             if _is_pipeline_in_tree(path, name):
                 return path
@@ -219,3 +261,51 @@ def _detect_root(file_path: Path) -> Path:
         candidate = candidate.parent
 
     return candidate
+
+
+def _find_extra_pipeline_import_path(
+    extra_dagdir: str, base_path: str | Path, path: str | Path
+) -> str:
+    """Find the extra pipeline import path.
+
+    Args:
+        extra_dagdir (str): Extra dagdir import string.
+        base_path (str | Path): Extra dagdir path.
+        path (str | Path): Pipeline module path.
+
+    Returns:
+        str: Pipeline module import string.
+    """
+    rel_path = Path(path).relative_to(base_path)
+    rel_import_string = str(rel_path.parent).replace("/", ".")
+    # otherwise top-level dag strings would be <extra-dagdir>..module
+    rel_import = f".{rel_import_string}" if rel_import_string != "." else ""
+    return f"{extra_dagdir}{rel_import}.{rel_path.stem}"
+
+
+def _get_dagdir(pyproj: Pyproj) -> str:
+    """Get the dagdir.
+
+    It's kept separate so it's easy to patch.
+
+    Args:
+        pyproj (Pyproj): Parsed pyproject.
+
+    Returns:
+        str: dagdir.
+    """
+    return pyproj.dagdir
+
+
+def _get_extra_dagdirs(pyproj: Pyproj) -> list[str]:
+    """Get extra dagdirs.
+
+    It's kept separate so it's easy to patch.
+
+    Args:
+        pyproj (Pyproj): Parsed pyproject.
+
+    Returns:
+        list[str]: dagdir.
+    """
+    return pyproj.extra_dagdirs

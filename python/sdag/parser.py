@@ -76,7 +76,7 @@ class ParserBuilder:
             help=(
                 "Pipeline name or import string (e.g., 'path.to:pipeline_fn')."
                 " By default, pipelines are searched in './pipelines'. You can"
-                " modify this behavior by setting the 'dag-dir' in the"
+                " modify this behavior by setting the 'dagdir' in the"
                 " [tool.sdag] field of the pyproject.toml file."
             ),
         )
@@ -103,10 +103,11 @@ class ParserBuilder:
             type=str,
             help=(
                 "Pipeline name or import string (e.g., 'path.to:pipeline_fn')."
-                " By default, pipelines are searched in './pipelines'. You can"
-                " modify this behavior by setting the 'dag-dir' in the"
-                " [tool.sdag] field of the pyproject.toml file. It can be"
-                " equal to a valid compiled graph path to skip compilation."
+                " By default, pipelines are searched in the main project"
+                " directory. You can modify this behavior by setting the"
+                " 'dagdir' in the [tool.sdag] field of the pyproject.toml"
+                " file. It can be equal to a valid compiled graph path to"
+                " skip compilation."
             ),
         )
 
@@ -326,10 +327,11 @@ class ParserBuilder:
             type=str,
             help=(
                 "Pipeline name or import string (e.g., 'path.to:pipeline_fn')."
-                " By default, pipelines are searched in './pipelines'. You can"
-                " modify this behavior by setting the 'dag-dir' in the"
-                " [tool.sdag] field of the pyproject.toml file. It can be"
-                " equal to a valid compiled graph path to skip compilation."
+                " By default, pipelines are searched in the main project"
+                " directory. You can modify this behavior by setting the"
+                " 'dagdir' in the [tool.sdag] field of the pyproject.toml"
+                " file. It can be equal to a valid compiled graph path to"
+                " skip compilation."
             ),
         )
 

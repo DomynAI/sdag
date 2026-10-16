@@ -89,9 +89,9 @@ class Pyproj(SlurmOverride):
     """pyproject.toml configs.
 
     Attributes:
-        dag_dir (str): DAG directory.
-        compiled_dag_dir (str): Compiled DAG directory.
-        prepend_compiled_dag_dir (bool): Add the compiled pipeline
+        dagdir (str): DAG directory.
+        compiled_dagdir (str): Compiled DAG directory.
+        prepend_compiled_dagdir (bool): Add the compiled pipeline
             dir automatically if the directory has not been
             specified.
         time_between_polls (int): Time between successive Slurm polls
@@ -111,15 +111,18 @@ class Pyproj(SlurmOverride):
         envs (dict[str, str]): Environment variables added to all tasks.
             They have higher priority with respect to the ones set inside
             pipelines.
+        extra_dagdirs (list[str]): Import strings of additional dagirs
+            to import. Useful to use pipelines implemented in
+            dependencies.
     """
 
-    dag_dir: str = Field(alias="dag-dir", default=".")
-    compiled_dag_dir: str = Field(
-        alias="compiled-dag-dir", default="./compiled-pipelines"
+    dagdir: str = Field(default=".")
+    compiled_dagdir: str = Field(
+        alias="compiled-dagdir", default="./compiled-pipelines"
     )
     local: bool = False
-    prepend_compiled_dag_dir: bool = Field(
-        alias="prepend-compiled-dag-dir", default=True
+    prepend_compiled_dagdir: bool = Field(
+        alias="prepend-compiled-dagdir", default=True
     )
     log_level: Literal["debug", "info", "warning", "error"] = Field(
         alias="log-level", default="info"
@@ -137,11 +140,31 @@ class Pyproj(SlurmOverride):
     fail_fast: bool = Field(alias="fail-fast", default=False)
     detach: DetachOptions = Field(default_factory=DetachOptions)
     envs: dict[str, str] = Field(default_factory=dict)
+    extra_dagdirs: list[str] = Field(default_factory=list)
     tags: list[SDAGTag] = Field(default_factory=list)
 
     model_config = ConfigDict(
         extra="forbid", validate_by_alias=True, serialize_by_alias=True
     )
+
+    @model_validator(mode="after")
+    def check_imported_dagdirs_are_not_paths(self) -> Self:
+        """Check imported dagdirs are valid import paths.
+
+        Raises:
+            ImportDagdirPathError: The dagdir is not an import
+                string but a path.
+
+        Returns:
+            Self: Pyproj.
+        """
+        for dagdir in self.extra_dagdirs:
+            if "/" in dagdir:
+                msg = (
+                    f"Imported dagir '{dagdir}' is not a valid import string."
+                )
+                raise ValueError(msg)
+        return self
 
     @model_validator(mode="after")
     def join_args_into_detach(self) -> Self:
@@ -184,8 +207,8 @@ class Pyproj(SlurmOverride):
         if argdict.get("max_concurrency") is not None:
             self.max_concurrency = args.max_concurrency
 
-        if argdict.get("compiled_dag_dir") is not None:
-            self.compiled_dag_dir = args.compiled_dag_dir
+        if argdict.get("compiled_dagdir") is not None:
+            self.compiled_dagdir = args.compiled_dagdir
 
         if argdict.get("fail_fast"):
             self.fail_fast = True
@@ -289,6 +312,8 @@ def _join_configs(
     1. join configuration dicts
     2. join environment variables
     3. override tags
+    4. join detach
+    5. replace extras if set
 
     Args:
         pyproj_dict (dict[str, Any]): Loaded pyproject.toml.
@@ -306,6 +331,8 @@ def _join_configs(
     sdag_toml_tags = sdag_toml_dict.get("tags", [])
     pyproj_detach = pyproj_dict.get("detach", {})
     sdag_toml_detach = sdag_toml_dict.get("detach", {})
+    pyproj_extras = pyproj_dict.get("extra_dagdirs", [])
+    sdag_toml_extras = sdag_toml_dict.get("extra_dagdirs", [])
 
     if not isinstance(pyproj_tags, list) or not isinstance(
         sdag_toml_tags, list
@@ -317,9 +344,11 @@ def _join_configs(
     sdag_toml_tag_dict = _get_tag_dict(sdag_toml_tags)
     tag_dict = pyproj_tag_dict | sdag_toml_tag_dict
     configs = pyproj_dict | sdag_toml_dict
+    pyproj_extras.extend(sdag_toml_extras)
     configs["envs"] = pyproj_envs | sdag_envs
     configs["tags"] = list(tag_dict.values())
     configs["detach"] = pyproj_detach | sdag_toml_detach
+    configs["extra_dagdirs"] = list(set(pyproj_extras))
 
     return configs
 
