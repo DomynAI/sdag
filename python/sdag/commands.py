@@ -38,7 +38,7 @@ def _find_cacheable_tasks(dag: DAG) -> list[CacheableTask]:
     """
     tasks: list[CacheableTask] = []
     for node in dag.nodes:
-        if node.kind == "task" and node.cache:
+        if node.kind == "task" and node.cache != "none":
             cacheable = CacheableTask(
                 name=node.name, pipeline=node.pipeline_name, scope=node.scope
             )
