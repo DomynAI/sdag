@@ -649,3 +649,65 @@ def test_batch_processing():
 """
 
     assert final_table == expected.strip()
+
+
+@pytest.mark.slow
+@pytest.mark.usefixtures("set_home")
+def test_extra_dag():
+    """Test top-level extra pipeline."""
+    output = subprocess.check_output(
+        ["sdag", "run", "extra", "-t", "1", "--local"],
+        stderr=subprocess.STDOUT,
+        timeout=15,
+    )
+    final_table = _get_table(output)
+    expected = """
+┌───────────────┬────────┐
+│        status │ ntasks │
+├───────────────┼────────┤
+│     Completed │ 1      │
+├───────────────┼────────┤
+│       Skipped │ 0      │
+├───────────────┼────────┤
+│        Failed │ 0      │
+├───────────────┼────────┤
+│       Pending │ 0      │
+├───────────────┼────────┤
+│       Running │ 0      │
+├───────────────┼────────┤
+│ Not submitted │ 0      │
+└───────────────┴────────┘
+"""
+
+    assert final_table == expected.strip()
+
+
+@pytest.mark.slow
+@pytest.mark.usefixtures("set_home")
+def test_inner_extra_dag():
+    """Test extra pipeline in nested package."""
+    output = subprocess.check_output(
+        ["sdag", "run", "inner_extra", "-t", "1", "--local"],
+        stderr=subprocess.STDOUT,
+        timeout=15,
+    )
+    final_table = _get_table(output)
+    expected = """
+┌───────────────┬────────┐
+│        status │ ntasks │
+├───────────────┼────────┤
+│     Completed │ 1      │
+├───────────────┼────────┤
+│       Skipped │ 0      │
+├───────────────┼────────┤
+│        Failed │ 0      │
+├───────────────┼────────┤
+│       Pending │ 0      │
+├───────────────┼────────┤
+│       Running │ 0      │
+├───────────────┼────────┤
+│ Not submitted │ 0      │
+└───────────────┴────────┘
+"""
+    print(final_table)
+    assert final_table == expected.strip()
