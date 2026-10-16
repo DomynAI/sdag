@@ -192,12 +192,13 @@ mod tests {
     }
 
     fn get_cfg(dir_creator: &DirCreator) -> Cfg {
-        let mut cfg = Cfg::default();
-        cfg.homedir = dir_creator.homedir.clone();
-        cfg.dagdir = dir_creator.dagdir.clone();
-        cfg.cachedir = dir_creator.cachedir.clone();
-        cfg.local_cachedir = dir_creator.local_cachedir.clone();
-        cfg
+        Cfg {
+            homedir: dir_creator.homedir.clone(),
+            dagdir: dir_creator.dagdir.clone(),
+            cachedir: dir_creator.cachedir.clone(),
+            local_cachedir: dir_creator.local_cachedir.clone(),
+            ..Default::default()
+        }
     }
 
     fn get_nodes(dag_name: &str) -> Vec<Node> {
@@ -214,9 +215,11 @@ mod tests {
             children: vec![],
             artifacts: vec![],
         };
-        let mut task = Task::default();
-        task.uid = 1;
-        task.pipeline_name = dag_name.to_string();
+        let task = Task {
+            uid: 1,
+            pipeline_name: dag_name.to_string(),
+            ..Default::default()
+        };
         vec![Node::Root(root), Node::Task(task), Node::OneOf(oneof)]
     }
 

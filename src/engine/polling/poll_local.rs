@@ -102,9 +102,10 @@ mod test {
     use std::process::Command;
 
     fn get_task(uid: usize) -> Task {
-        let mut task = Task::default();
-        task.uid = uid;
-        task
+        Task {
+            uid,
+            ..Default::default()
+        }
     }
 
     #[test]

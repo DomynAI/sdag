@@ -72,6 +72,6 @@ mod tests {
     fn find_home() {
         let home = set_sdag_home();
         let home_dir = find_homedir().unwrap();
-        assert_eq!(home_dir, PathBuf::from(home).join(".sdag"));
+        assert_eq!(home_dir, home.join(".sdag"));
     }
 }

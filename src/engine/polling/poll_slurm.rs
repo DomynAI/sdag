@@ -379,19 +379,21 @@ mod tests {
     fn get_cfg() -> Cfg {
         let homedir = get_tmp_dir();
         let paths = DirPaths::new(&homedir, "pipeline", "xxx");
-        let mut cfg = Cfg::default();
-        cfg.homedir = homedir;
-        cfg.dagdir = paths.dagdir;
-        cfg.cachedir = paths.cachedir;
-        cfg.local_cachedir = paths.local_cachedir;
-        cfg
+        Cfg {
+            homedir,
+            dagdir: paths.dagdir,
+            cachedir: paths.cachedir,
+            local_cachedir: paths.local_cachedir,
+            ..Default::default()
+        }
     }
 
     fn get_task(uid: usize) -> Task {
-        let mut task = Task::default();
-        task.cmd = Cmd::Sbatch;
-        task.uid = uid;
-        task
+        Task {
+            cmd: Cmd::Sbatch,
+            uid,
+            ..Default::default()
+        }
     }
 
     fn get_ctx(nodes: &[Node]) -> Ctx {
@@ -697,7 +699,7 @@ mod tests {
         node_ctx.jobs[0].status = Status::Failed(Failed::Generic);
         node_ctx.jobs[1].status = Status::Running(JobType::Slurm("1".into()));
 
-        let status = get_global_status(&node_ctx, "1".into());
+        let status = get_global_status(&node_ctx, "1");
         assert_matches!(status, Status::Running(_))
     }
 
@@ -707,7 +709,7 @@ mod tests {
         node_ctx.jobs[0].status = Status::Completed(Completed::Cached);
         node_ctx.jobs[1].status = Status::Completed(Completed::Job(JobType::Slurm("1".into())));
 
-        let status = get_global_status(&node_ctx, "1".into());
+        let status = get_global_status(&node_ctx, "1");
         assert_matches!(status, Status::Completed(_))
     }
 
@@ -717,7 +719,7 @@ mod tests {
         node_ctx.jobs[0].status = Status::Completed(Completed::Cached);
         node_ctx.jobs[1].status = Status::Failed(Failed::Generic);
 
-        let status = get_global_status(&node_ctx, "1".into());
+        let status = get_global_status(&node_ctx, "1");
         assert_matches!(status, Status::Failed(_))
     }
 
@@ -727,7 +729,7 @@ mod tests {
         node_ctx.jobs[0].status = Status::Skipped;
         node_ctx.jobs[1].status = Status::Skipped;
 
-        let status = get_global_status(&node_ctx, "1".into());
+        let status = get_global_status(&node_ctx, "1");
         assert_matches!(status, Status::Skipped)
     }
 
@@ -737,7 +739,7 @@ mod tests {
         node_ctx.jobs[0].status = Status::Skipped;
         node_ctx.jobs[1].status = Status::NotSubmitted;
 
-        let status = get_global_status(&node_ctx, "1".into());
+        let status = get_global_status(&node_ctx, "1");
         assert_matches!(status, Status::Running(_))
     }
 
@@ -747,7 +749,7 @@ mod tests {
         node_ctx.jobs[0].status = Status::ReadyForSubmission;
         node_ctx.jobs[1].status = Status::NotSubmitted;
 
-        let status = get_global_status(&node_ctx, "1".into());
+        let status = get_global_status(&node_ctx, "1");
         assert_matches!(status, Status::ReadyForSubmission)
     }
 
@@ -757,7 +759,7 @@ mod tests {
         node_ctx.jobs[0].status = Status::ReadyForSubmission;
         node_ctx.jobs[1].status = Status::Pending(JobType::Slurm("1".into()));
 
-        let status = get_global_status(&node_ctx, "1".into());
+        let status = get_global_status(&node_ctx, "1");
         assert_matches!(status, Status::Pending(_))
     }
 }

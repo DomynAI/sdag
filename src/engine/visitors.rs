@@ -174,12 +174,13 @@ mod tests {
     fn get_cfg() -> Cfg {
         let homedir = get_tmp_dir();
         let paths = DirPaths::new(&homedir, "pipeline", "xxx");
-        let mut cfg = Cfg::default();
-        cfg.homedir = homedir;
-        cfg.dagdir = paths.dagdir;
-        cfg.cachedir = paths.cachedir;
-        cfg.local_cachedir = paths.local_cachedir;
-        cfg
+        Cfg {
+            homedir,
+            dagdir: paths.dagdir,
+            cachedir: paths.cachedir,
+            local_cachedir: paths.local_cachedir,
+            ..Default::default()
+        }
     }
 
     fn get_ctx(nodes: &[Node]) -> Ctx {
@@ -250,9 +251,10 @@ mod tests {
     }
 
     fn get_task(uid: usize) -> Task {
-        let mut task = Task::default();
-        task.uid = uid;
-        task
+        Task {
+            uid,
+            ..Default::default()
+        }
     }
 
     #[test]

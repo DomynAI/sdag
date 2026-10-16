@@ -174,9 +174,11 @@ mod tests {
     use tabled::assert::assert_table;
 
     fn get_nodes() -> Vec<Node> {
-        let mut task0 = Task::default();
-        task0.name = "name".into();
-        task0.pipeline_name = "pipeline_name".into();
+        let task0 = Task {
+            name: "name".into(),
+            pipeline_name: "pipeline_name".into(),
+            ..Default::default()
+        };
 
         let mut task1 = task0.clone();
         let mut task2 = task0.clone();
@@ -236,9 +238,11 @@ mod tests {
 
     #[test]
     fn test_get_summary_table_with_array() {
-        let mut task0 = Task::default();
-        task0.name = "name".into();
-        task0.pipeline_name = "pipeline_name".into();
+        let task0 = Task {
+            name: "name".into(),
+            pipeline_name: "pipeline_name".into(),
+            ..Default::default()
+        };
 
         let mut task1 = task0.clone();
         task1.uid = 1;

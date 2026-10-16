@@ -201,16 +201,17 @@ mod tests {
     }
 
     fn get_task() -> Task {
-        let mut task = Task::default();
-        task.uid = 1;
-        task.parents = vec![Parent {
-            uid: 0,
-            kind: ParentKind::Logical,
-        }];
-        task.fn_name = "fn_name".into();
-        task.name = "name".into();
-        task.pipeline_name = "pipeline_name".into();
-        task
+        Task {
+            uid: 1,
+            parents: vec![Parent {
+                uid: 0,
+                kind: ParentKind::Logical,
+            }],
+            fn_name: "fn_name".into(),
+            name: "name".into(),
+            pipeline_name: "pipeline_name".into(),
+            ..Default::default()
+        }
     }
 
     fn get_nodes() -> Vec<Node> {
@@ -311,11 +312,13 @@ mod tests {
 
         let homedir = path.join("home");
         let paths = DirPaths::new(&homedir, "pipeline", "xxx");
-        let mut cfg = Cfg::default();
-        cfg.homedir = homedir;
-        cfg.dagdir = paths.dagdir;
-        cfg.cachedir = paths.cachedir;
-        cfg.local_cachedir = paths.local_cachedir;
+        let cfg = Cfg {
+            homedir,
+            dagdir: paths.dagdir,
+            cachedir: paths.cachedir,
+            local_cachedir: paths.local_cachedir,
+            ..Default::default()
+        };
 
         create_dir_structure(&cfg, &nodes).unwrap();
 

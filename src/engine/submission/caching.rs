@@ -266,13 +266,14 @@ mod tests {
 
     fn get_cfg(tmp_dir: &Path) -> Cfg {
         let paths = DirPaths::new(tmp_dir, "dag", "hhh");
-        let mut cfg = Cfg::default();
-        cfg.homedir = tmp_dir.to_path_buf();
-        cfg.dagdir = paths.dagdir;
-        cfg.cachedir = paths.cachedir;
-        cfg.local_cachedir = paths.local_cachedir;
-        cfg.dag_code_hash = "abc".into();
-        cfg
+        Cfg {
+            homedir: tmp_dir.to_path_buf(),
+            dagdir: paths.dagdir,
+            cachedir: paths.cachedir,
+            local_cachedir: paths.local_cachedir,
+            dag_code_hash: "abc".into(),
+            ..Default::default()
+        }
     }
 
     fn get_task(tmp_dir: &Path) -> Task {

@@ -86,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_runtask_hash() {
-        let task_name = "name".into();
+        let task_name = "name";
         let runtask_hash = get_runtask_hash(task_name);
         // name + - + <8-letter-hash>
         assert_eq!(runtask_hash.chars().count(), 13);
