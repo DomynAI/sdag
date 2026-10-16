@@ -45,6 +45,7 @@ impl fmt::Display for Completed {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[allow(clippy::enum_variant_names)]
 pub enum Failed {
     Job(JobType),
     Generic,
@@ -62,9 +63,10 @@ impl fmt::Display for Failed {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 pub enum Status {
     /// Node not submitted yet.
+    #[default]
     NotSubmitted,
     /// Node ready for submission.
     ReadyForSubmission,
@@ -78,12 +80,6 @@ pub enum Status {
     Skipped,
     /// Node execution failed.
     Failed(Failed),
-}
-
-impl Default for Status {
-    fn default() -> Self {
-        Self::NotSubmitted
-    }
 }
 
 impl Status {

@@ -22,6 +22,7 @@ pub trait ProvideStatus {
     fn provide_status<'b>(&self, status: &'b Status, kind: &ParentKind) -> &'b Status;
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Node {

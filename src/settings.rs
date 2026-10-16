@@ -4,7 +4,6 @@
 use env_logger::Env;
 
 use chrono::Local;
-use log;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::path::PathBuf;
@@ -48,13 +47,10 @@ pub fn configure_logging(log_level: &str) {
 pub fn find_homedir() -> Result<PathBuf, String> {
     let path = match env::var("SDAG_HOME") {
         Ok(val) => PathBuf::from(val),
-        Err(_) => {
-            let path = env::home_dir().ok_or(String::from(
-                "Failed to identify a home directory, please Set the \
+        Err(_) => env::home_dir().ok_or(String::from(
+            "Failed to identify a home directory, please Set the \
             'SDAG_HOME' environment variable explicitely.",
-            ))?;
-            path
-        }
+        ))?,
     };
     Ok(path.join(".sdag"))
 }
@@ -76,6 +72,6 @@ mod tests {
     fn find_home() {
         let home = set_sdag_home();
         let home_dir = find_homedir().unwrap();
-        assert_eq!(home_dir, PathBuf::from(home).join(".sdag"));
+        assert_eq!(home_dir, home.join(".sdag"));
     }
 }

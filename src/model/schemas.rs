@@ -49,20 +49,15 @@ pub struct TaskOutput {
 }
 
 // Task execution mode
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 pub enum ExecMode {
     /// Wrap an existing task
+    #[default]
     #[serde(rename = "wrap")]
     Wrap,
     /// External script
     #[serde(rename = "ext")]
     Ext,
-}
-
-impl Default for ExecMode {
-    fn default() -> Self {
-        Self::Wrap
-    }
 }
 
 /// Task static input kwargs.
@@ -74,13 +69,14 @@ pub struct Kwarg {
     pub value: Value,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 pub enum Cmd {
     /// Slurm
     #[serde(rename = "sbatch")]
     Sbatch,
     /// Local execution
     #[serde(rename = "bash")]
+    #[default]
     Bash,
 }
 impl fmt::Display for Cmd {
@@ -93,25 +89,16 @@ impl fmt::Display for Cmd {
         write!(f, "{cmd}")
     }
 }
-impl Default for Cmd {
-    fn default() -> Self {
-        Self::Bash
-    }
-}
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 pub enum Scope {
     /// Local task
     #[serde(rename = "local")]
+    #[default]
     Local,
     /// Global task
     #[serde(rename = "global")]
     Global,
-}
-impl Default for Scope {
-    fn default() -> Self {
-        Self::Local
-    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -209,9 +196,10 @@ pub struct SlurmOverride {
     pub time: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum Cache {
+    #[default]
     None,
     Output,
     Io,
@@ -227,11 +215,6 @@ impl Cache {
     }
 }
 
-impl Default for Cache {
-    fn default() -> Self {
-        Self::None
-    }
-}
 impl fmt::Display for Cache {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let cmd = match self {

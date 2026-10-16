@@ -41,7 +41,7 @@ pub fn submit_slurm_job_array(
     save_meta(task, cfg)?;
 
     let base_path = cfg.dagdir.join(task.uid.to_string()).join(".shards");
-    if node_ctx.jobs.len() == 0 {
+    if node_ctx.jobs.is_empty() {
         let njobs = shard_input(&mut input, each, task, &base_path)?;
         node_ctx.jobs = vec![JobArray::default(); njobs];
     }
@@ -59,7 +59,7 @@ pub fn submit_slurm_job_array(
     set_array_variables(&mut cmd, &base_path, task, node_ctx, cfg)?;
     let output = cmd.output()?;
     if let Ok(stderr) = String::from_utf8(output.stderr)
-        && stderr.len() > 0
+        && !stderr.is_empty()
     {
         log::error!("Task '{}' submission:\n{stderr}", task.uid);
     }
@@ -101,7 +101,7 @@ pub fn submit_single_slurm_job(
     let output = cmd.output()?;
 
     if let Ok(stderr) = String::from_utf8(output.stderr)
-        && stderr.len() > 0
+        && !stderr.is_empty()
     {
         log::error!("Task '{}' submission:\n{stderr}", task.uid);
     }
@@ -144,7 +144,7 @@ fn shard_input(
         let start = job_id * div + job_id.min(rem);
         let end = start + div + usize::from(job_id < rem);
         let shard = &arr[start..end];
-        state::save_shard(shard, &base_path, job_id)
+        state::save_shard(shard, base_path, job_id)
             .map_err(|e| format!("Task {}: Failed to save shard - {e}", task.uid))?;
     }
     Ok(njobs)
@@ -208,7 +208,7 @@ fn build_command(
     }
 
     if let ExecMode::Ext = task.mode {
-        set_input_as_envs(&mut cmd, &input);
+        set_input_as_envs(&mut cmd, input);
     }
 
     cmd.env("SDAG_TRY_NUM", try_num.to_string())
@@ -259,41 +259,41 @@ fn override_sbatch(
     output: &str,
     error: &str,
 ) {
-    cmd.arg(&format!("--error={error}"));
-    cmd.arg(&format!("--output={output}"));
+    cmd.arg(format!("--error={error}"));
+    cmd.arg(format!("--output={output}"));
 
     let mut job_name = name;
     if let Some(user_job_name) = &slurm.job_name {
         job_name = user_job_name;
     }
-    cmd.arg(&format!("--job-name={job_name}"));
+    cmd.arg(format!("--job-name={job_name}"));
 
     if let Some(nodes) = &slurm.nodes {
-        cmd.arg(&format!("--nodes={nodes}"));
+        cmd.arg(format!("--nodes={nodes}"));
     }
     if let Some(partition) = &slurm.partition {
-        cmd.arg(&format!("--partition={partition}"));
+        cmd.arg(format!("--partition={partition}"));
     }
     if let Some(qos) = &slurm.qos {
-        cmd.arg(&format!("--qos={qos}"));
+        cmd.arg(format!("--qos={qos}"));
     }
     if let Some(gpus_per_node) = &slurm.gpus_per_node {
-        cmd.arg(&format!("--gpus-per-node={gpus_per_node}"));
+        cmd.arg(format!("--gpus-per-node={gpus_per_node}"));
     }
     if let Some(ntasks_per_node) = &slurm.ntasks_per_node {
-        cmd.arg(&format!("--ntasks-per-node={ntasks_per_node}"));
+        cmd.arg(format!("--ntasks-per-node={ntasks_per_node}"));
     }
     if let Some(account) = &slurm.account {
-        cmd.arg(&format!("--account={account}"));
+        cmd.arg(format!("--account={account}"));
     }
     if let Some(cpus_per_task) = &slurm.cpus_per_task {
-        cmd.arg(&format!("--cpus-per-task={cpus_per_task}"));
+        cmd.arg(format!("--cpus-per-task={cpus_per_task}"));
     }
     if let Some(mem) = &slurm.mem {
-        cmd.arg(&format!("--mem={mem}"));
+        cmd.arg(format!("--mem={mem}"));
     }
     if let Some(time) = &slurm.time {
-        cmd.arg(&format!("--time={time}"));
+        cmd.arg(format!("--time={time}"));
     }
 }
 
@@ -369,7 +369,7 @@ fn set_array_variables(
     cfg: &Cfg,
 ) -> Result<(), String> {
     let ids = find_ids_to_be_submitted(&node_ctx.jobs);
-    if ids.len() == 0 {
+    if ids.is_empty() {
         let msg = format!(
             "Task {}: No task ids found during array submission",
             task.uid
@@ -441,20 +441,22 @@ mod tests {
         let homedir = get_tmp_dir();
         let meta = get_meta();
         let paths = DirPaths::new(&homedir, &meta.pipeline_name, &meta.hash);
-        let mut cfg = Cfg::default();
-        cfg.dagdir = paths.dagdir;
-        cfg.cachedir = paths.cachedir;
-        cfg.local_cachedir = paths.local_cachedir;
-        cfg
+        Cfg {
+            dagdir: paths.dagdir,
+            cachedir: paths.cachedir,
+            local_cachedir: paths.local_cachedir,
+            ..Default::default()
+        }
     }
 
     fn get_task() -> Task {
-        let mut task = Task::default();
-        task.script = Script::Script(ScriptContent {
-            content: "echo hello".into(),
-        });
-        task.envs = HashMap::from([("VAR".into(), Value::Bool(true))]);
-        task
+        Task {
+            script: Script::Script(ScriptContent {
+                content: "echo hello".into(),
+            }),
+            envs: HashMap::from([("VAR".into(), Value::Bool(true))]),
+            ..Default::default()
+        }
     }
 
     #[test]
@@ -486,14 +488,14 @@ mod tests {
     #[test]
     fn parse_job_output() {
         let output = "1234";
-        let job_id = find_submitted_job_id(&output).unwrap();
+        let job_id = find_submitted_job_id(output).unwrap();
         assert_eq!(job_id, "1234");
     }
 
     #[test]
     fn parse_job_output_with_cluster() {
         let output = "   1234   ;cluster_name";
-        let job_id = find_submitted_job_id(&output).unwrap();
+        let job_id = find_submitted_job_id(output).unwrap();
         assert_eq!(job_id, "1234");
     }
 
@@ -553,9 +555,11 @@ mod tests {
 
     #[test]
     fn find_custom_log_paths() {
-        let mut slurm = SlurmOverride::default();
-        slurm.output = Some("output.out".into());
-        slurm.error = Some("error.err".into());
+        let slurm = SlurmOverride {
+            output: Some("output.out".into()),
+            error: Some("error.err".into()),
+            ..Default::default()
+        };
 
         let (output, error) =
             find_output_and_error_paths(&slurm, "pipe", "subpipe", "1900-01-01", false);
@@ -567,8 +571,10 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_shard_input_without_each() {
-        let mut task = Task::default();
-        task.each = Some("items".into());
+        let task = Task {
+            each: Some("items".into()),
+            ..Default::default()
+        };
         let mut input = HashMap::new();
         let base_path = get_tmp_dir();
         shard_input(&mut input, "items", &task, &base_path).unwrap();
@@ -577,8 +583,10 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_shard_each_is_not_array() {
-        let mut task = Task::default();
-        task.each = Some("items".into());
+        let task = Task {
+            each: Some("items".into()),
+            ..Default::default()
+        };
         let mut input = HashMap::from([("items".into(), "not-array".into())]);
         let base_path = get_tmp_dir();
         shard_input(&mut input, "items", &task, &base_path).unwrap();
@@ -587,8 +595,10 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_each_size_is_zero() {
-        let mut task = Task::default();
-        task.each = Some("items".into());
+        let task = Task {
+            each: Some("items".into()),
+            ..Default::default()
+        };
         let mut input = HashMap::from([("items".into(), Value::Array(vec![]))]);
         let base_path = get_tmp_dir();
         shard_input(&mut input, "items", &task, &base_path).unwrap();
@@ -596,9 +606,11 @@ mod tests {
 
     #[test]
     fn test_shard_input() {
-        let mut task = Task::default();
-        task.each = Some("items".into());
-        task.njobs = 2;
+        let task = Task {
+            each: Some("items".into()),
+            njobs: 2,
+            ..Default::default()
+        };
         let mut input = HashMap::from([("items".into(), json!(["1", "2", "3"]))]);
         let base_path = get_tmp_dir();
         let njobs = shard_input(&mut input, "items", &task, &base_path).unwrap();
@@ -617,9 +629,11 @@ mod tests {
 
     #[test]
     fn test_shard_number_goes_down_to_one() {
-        let mut task = Task::default();
-        task.each = Some("items".into());
-        task.njobs = 2;
+        let task = Task {
+            each: Some("items".into()),
+            njobs: 2,
+            ..Default::default()
+        };
         let mut input = HashMap::from([("items".into(), json!(["1"]))]);
         let base_path = get_tmp_dir();
         let njobs = shard_input(&mut input, "items", &task, &base_path).unwrap();

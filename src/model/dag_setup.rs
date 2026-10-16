@@ -7,7 +7,7 @@ use crate::model::schemas::Cmd;
 pub fn find_root_node(nodes: &[Node]) -> Option<usize> {
     for node in nodes {
         if let Node::Root(root) = node
-            && root.parents.len() == 0
+            && root.parents.is_empty()
         {
             return Some(root.uid);
         }
@@ -67,12 +67,14 @@ mod tests {
             parents: Vec::new(),
             children: Vec::new(),
         };
-        let mut task = Task::default();
-        task.uid = 1;
-        task.parents = vec![Parent {
-            uid: 0,
-            kind: ParentKind::Logical,
-        }];
+        let task = Task {
+            uid: 1,
+            parents: vec![Parent {
+                uid: 0,
+                kind: ParentKind::Logical,
+            }],
+            ..Default::default()
+        };
 
         let end = End {
             uid: 2,
@@ -113,7 +115,7 @@ mod tests {
     fn test_find_root() {
         let mut nodes = get_nodes();
         add_children(&mut nodes);
-        let root_uid = find_root_node(&mut nodes).unwrap();
+        let root_uid = find_root_node(&nodes).unwrap();
         assert_eq!(root_uid, 0)
     }
 

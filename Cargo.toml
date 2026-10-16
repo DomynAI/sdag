@@ -24,3 +24,6 @@ uuid = {version = "1.22.0", features = ["v4"]}
 [dependencies.pyo3]
 version = "0.27.0"
 features = ["abi3-py38", "experimental-inspect"]
+
+[lints.clippy]
+upper_case_acronyms = "allow"

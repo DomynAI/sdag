@@ -173,7 +173,7 @@ mod tests {
     }
 
     fn get_nodes(tasks: Vec<Task>) -> Vec<Node> {
-        tasks.into_iter().map(|t| Node::Task(t)).collect()
+        tasks.into_iter().map(Node::Task).collect()
     }
 
     #[test]

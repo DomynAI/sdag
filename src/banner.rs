@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Domyn
 // SPDX-License-Identifier: Apache-2.0
 
-use log;
-
 pub fn log_banner() {
     let banner = r#"
   _____ _____          _____

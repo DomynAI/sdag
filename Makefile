@@ -1,5 +1,8 @@
 LIBDIR := $(shell uv run python -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
 
-.PHONY: test
+.PHONY: test lint
 test:
 	DYLD_LIBRARY_PATH=$(LIBDIR) LD_LIBRARY_PATH=$(LIBDIR) cargo test $(ARGS)
+
+lint:
+	cargo clippy --all-targets --all-features -- -D warnings

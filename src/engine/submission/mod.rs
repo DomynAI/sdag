@@ -105,7 +105,7 @@ impl<'a> Submitter<'a> {
 
     fn submit_local(&mut self, task: &Task, ctx: &mut Ctx) -> Result<(), Box<dyn Error>> {
         let try_num = ctx.nodes[task.uid].try_num;
-        let child = jobs::submit_local(task, try_num, &self.cfg, &self.meta)?;
+        let child = jobs::submit_local(task, try_num, self.cfg, self.meta)?;
         let pid = child.id();
 
         log::info!("Task '{}': Submitted process with pid '{}'", task.uid, pid);
@@ -117,7 +117,7 @@ impl<'a> Submitter<'a> {
 
     fn submit_slurm(&mut self, task: &Task, ctx: &mut Ctx) -> Result<(), Box<dyn Error>> {
         let node_ctx = &mut ctx.nodes[task.uid];
-        let job_id = jobs::submit_slurm(task, &self.cfg, &self.meta, node_ctx)?;
+        let job_id = jobs::submit_slurm(task, self.cfg, self.meta, node_ctx)?;
         log::info!("Task '{}': Submitted job_id '{}'", task.uid, job_id);
         ctx.slurm_jobs.push((task.uid, job_id.to_string()));
         ctx.set_status(task.uid, Status::Pending(JobType::Slurm(job_id)));
@@ -138,7 +138,7 @@ impl<'a> Submitter<'a> {
                 .push_back(Job::ValidateCache(task.uid, false));
             return;
         }
-        if !already_checked && caching::submit_validate_cache(&task, &self.cfg) {
+        if !already_checked && caching::submit_validate_cache(task, self.cfg) {
             ctx.set_status(task.uid, Status::Completed(Completed::Cached));
             return;
         }

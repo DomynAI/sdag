@@ -158,7 +158,7 @@ pub fn clear_local_cache(task_name: &str, pipeline_name: &str, homedir: &Path) -
             task_name,
             pipeline_name
         );
-        return Ok(());
+        Ok(())
     } else {
         log::debug!(
             "Deleting task '{}' (pipeline '{}') local cache",
@@ -214,15 +214,16 @@ pub fn get_static_input(kwargs: &[Kwarg], parents: &[Parent]) -> HashMap<String,
 pub fn create_output_and_error_log_dirs(output: &str, error: &str) {
     let path_out = PathBuf::from(&output);
     let path_err = PathBuf::from(&error);
-    if let Some(output_dir) = path_out.parent() {
-        if let Err(e) = fs::create_dir_all(output_dir) {
-            log::warn!("Failed to create output log directory: {e}");
-        }
+    if let Some(output_dir) = path_out.parent()
+        && let Err(e) = fs::create_dir_all(output_dir)
+    {
+        log::warn!("Failed to create output log directory: {e}");
     }
-    if let Some(error_dir) = path_err.parent() {
-        if let Err(e) = fs::create_dir_all(error_dir) {
-            log::warn!("Failed to create error log directory: {e}");
-        }
+
+    if let Some(error_dir) = path_err.parent()
+        && let Err(e) = fs::create_dir_all(error_dir)
+    {
+        log::warn!("Failed to create error log directory: {e}");
     }
 }
 
@@ -238,7 +239,7 @@ pub fn save_shard(shard: &[Value], base_path: &Path, job_id: usize) -> std::io::
     fs::create_dir_all(&path)?;
     let filename = FileNames::Shard.as_str();
     let contents = serde_json::to_string(shard)?;
-    fs::write(&path.join(filename), &contents)
+    fs::write(path.join(filename), &contents)
 }
 
 /// Add the dynamic input to the input data
@@ -431,7 +432,7 @@ mod tests {
         let path = get_tmp_dir();
         let script_path = path.join("script.sh");
         let script = "echo hello";
-        save_script(&script, &script_path).unwrap();
+        save_script(script, &script_path).unwrap();
         assert!(script_path.is_file());
 
         let perms = fs::metadata(script_path).unwrap().permissions();
@@ -450,32 +451,34 @@ mod tests {
         fs::create_dir_all(&output_path).unwrap();
         save_task_output(&output_path, &output).unwrap();
 
-        let mut task = Task::default();
-        task.uid = 3;
-        task.kwargs = vec![Kwarg {
-            key: "key".into(),
-            value: Value::Null,
-        }];
-        task.parents = vec![
-            Parent {
-                uid: 0,
-                kind: ParentKind::Logical,
-            },
-            Parent {
-                uid: 1,
-                kind: ParentKind::Artifact {
-                    key: "artifact".into(),
-                    name: "artifact_name".into(),
-                    path: PathBuf::from("path/to/artifact"),
+        let task = Task {
+            uid: 3,
+            kwargs: vec![Kwarg {
+                key: "key".into(),
+                value: Value::Null,
+            }],
+            parents: vec![
+                Parent {
+                    uid: 0,
+                    kind: ParentKind::Logical,
                 },
-            },
-            Parent {
-                uid: 2,
-                kind: ParentKind::Output {
-                    key: "output".into(),
+                Parent {
+                    uid: 1,
+                    kind: ParentKind::Artifact {
+                        key: "artifact".into(),
+                        name: "artifact_name".into(),
+                        path: PathBuf::from("path/to/artifact"),
+                    },
                 },
-            },
-        ];
+                Parent {
+                    uid: 2,
+                    kind: ParentKind::Output {
+                        key: "output".into(),
+                    },
+                },
+            ],
+            ..Default::default()
+        };
 
         let expected = HashMap::from([
             ("key".into(), json!(null)),
