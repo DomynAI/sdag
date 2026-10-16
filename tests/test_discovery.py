@@ -7,6 +7,7 @@ import pytest
 import sdag.discovery
 from sdag.discovery import (
     _detect_root,
+    _find_extra_pipeline_import_path,
     _find_module_path,
     _find_pipeline_path,
     find_all_pipelines,
@@ -125,18 +126,16 @@ def local_task(): ...
 
 def test_find_pipeline_path(tmp_path: Path) -> None:
     target_path = _create_target_structure(base_path=tmp_path)
-    dag_dir = str(tmp_path / "pkg")
-    pipeline_path = _find_pipeline_path(
-        name="target_pipeline", dag_dir=dag_dir
-    )
+    dagdir = str(tmp_path / "pkg")
+    pipeline_path = _find_pipeline_path(name="target_pipeline", dagdir=dagdir)
 
     assert pipeline_path == target_path
 
 
 def test_do_not_find_pipeline_path(tmp_path: Path) -> None:
     _create_target_structure(base_path=tmp_path)
-    dag_dir = str(tmp_path / "pkg")
-    pipeline_path = _find_pipeline_path(name="missing", dag_dir=dag_dir)
+    dagdir = str(tmp_path / "pkg")
+    pipeline_path = _find_pipeline_path(name="missing", dagdir=dagdir)
 
     assert pipeline_path is None
 
@@ -145,7 +144,7 @@ def test_find_module_path(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        sdag.discovery, "_find_dag_dir", lambda: str(tmp_path / "pkg")
+        sdag.discovery, "_get_dagdir", lambda _x: str(tmp_path / "pkg")
     )
 
     _create_target_structure(base_path=tmp_path)
@@ -158,7 +157,7 @@ def test_do_not_find_module_path(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        sdag.discovery, "_find_dag_dir", lambda: str(tmp_path / "pkg")
+        sdag.discovery, "_get_dagdir", lambda _x: str(tmp_path / "pkg")
     )
 
     _create_target_structure(base_path=tmp_path)
@@ -170,8 +169,9 @@ def test_find_all_pipelines(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        sdag.discovery, "_find_dag_dir", lambda: str(tmp_path / "pkg")
+        sdag.discovery, "_get_dagdir", lambda _x: str(tmp_path / "pkg")
     )
+    monkeypatch.setattr(sdag.discovery, "_get_extra_dagdirs", lambda _x: [])
 
     content12 = """from sdag import pipeline, task
 
@@ -230,3 +230,28 @@ def local_task(): ...
         "target_pipeline2": str(script12),
         "target_pipeline3": str(script3),
     }
+
+
+@pytest.mark.parametrize(
+    argnames=("path", "expected_string"),
+    argvalues=[
+        ("src/main/base/hello.py", "main.base.hello"),
+        ("src/main/base/inner/hello.py", "main.base.inner.hello"),
+    ],
+)
+def test_find_extra_pipeline_import_path(
+    path: str, expected_string: str
+) -> None:
+    """Check extra pipeline import strings are correct.
+
+    Args:
+        path (str): Extra pipeline import path.
+        expected_string (str): Expected import string.
+    """
+    base_path = "src/main/base"
+    extra_dagdir = "main.base"
+    import_string = _find_extra_pipeline_import_path(
+        extra_dagdir, base_path, path
+    )
+
+    assert import_string == expected_string

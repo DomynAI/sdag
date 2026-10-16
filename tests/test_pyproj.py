@@ -17,13 +17,14 @@ def test_parse_pyproject(tmp_path: Path) -> None:
         tmp_path (Path): Temporary path fixture.
     """
     content = """[tool.sdag]
-    dag-dir = "path/to/dagdir"
-    compiled-dag-dir = "path/to/compiled"
-    prepend-compiled-dag-dir = true
+    dagdir = "path/to/dagdir"
+    compiled-dagdir = "path/to/compiled"
+    prepend-compiled-dagdir = true
     log-level = "debug"
     slurm-grace-period = 50
     max-concurrent-runs = 2
     local = true
+    extra_dagdirs = ["sdag.extras"]
 
     [tool.sdag.envs]
     ENV="value"
@@ -45,9 +46,9 @@ def test_parse_pyproject(tmp_path: Path) -> None:
     pyproj = get_pyproj(
         pyproj_path=str(pyproj_path), sdag_toml_path=str(sdag_toml_path)
     )
-    assert pyproj.dag_dir == "path/to/dagdir"
-    assert pyproj.compiled_dag_dir == "path/to/compiled"
-    assert pyproj.prepend_compiled_dag_dir
+    assert pyproj.dagdir == "path/to/dagdir"
+    assert pyproj.compiled_dagdir == "path/to/compiled"
+    assert pyproj.prepend_compiled_dagdir
     assert pyproj.local
     assert pyproj.log_level == "debug"
     assert pyproj.slurm_grace_period == 50
@@ -57,6 +58,7 @@ def test_parse_pyproject(tmp_path: Path) -> None:
     assert not pyproj.tags[0].local
     assert pyproj.tags[0].envs == {"ENV": "another_value"}
     assert pyproj.detach.job_name == "detached"
+    assert pyproj.extra_dagdirs == ["sdag.extras"]
 
 
 def test_parse_pyproject_invalid_tags(tmp_path: Path) -> None:
@@ -94,6 +96,23 @@ def test_parse_pyproject_no_tag_name(tmp_path: Path) -> None:
         get_pyproj(str(path))
 
 
+def test_wrong_extra_dagdirs_are_blocked(tmp_path: Path) -> None:
+    """Extras must be import strings.
+
+    Args:
+        tmp_path (Path): Temporary path fixture.
+    """
+    content = """[[tool.sdag.tags]]
+    extra_dagdirs = ["some/path"]
+    """
+    path = tmp_path / "pyproject.toml"
+    with path.open("w") as f:
+        f.write(content)
+
+    with pytest.raises(ValueError, match="some/path"):
+        get_pyproj(str(path))
+
+
 def test_parse_pyproject_tag_is_not_obj(tmp_path: Path) -> None:
     """Tags must be objects.
 
@@ -115,13 +134,14 @@ def test_parse_sdag_toml(tmp_path: Path) -> None:
     Args:
         tmp_path (Path): Temporary path fixture.
     """
-    content = """dag-dir = "path/to/dagdir"
-    compiled-dag-dir = "path/to/compiled"
-    prepend-compiled-dag-dir = true
+    content = """dagdir = "path/to/dagdir"
+    compiled-dagdir = "path/to/compiled"
+    prepend-compiled-dagdir = true
     log-level = "debug"
     slurm-grace-period = 50
     max-concurrent-runs = 2
     local = true
+    extra_dagdirs = ["sdag.extras"]
 
     [envs]
     ENV="value"
@@ -144,9 +164,9 @@ def test_parse_sdag_toml(tmp_path: Path) -> None:
         sdag_toml_path=str(sdag_toml_path),
     )
 
-    assert pyproj.dag_dir == "path/to/dagdir"
-    assert pyproj.compiled_dag_dir == "path/to/compiled"
-    assert pyproj.prepend_compiled_dag_dir
+    assert pyproj.dagdir == "path/to/dagdir"
+    assert pyproj.compiled_dagdir == "path/to/compiled"
+    assert pyproj.prepend_compiled_dagdir
     assert pyproj.local
     assert pyproj.log_level == "debug"
     assert pyproj.slurm_grace_period == 50
@@ -154,6 +174,7 @@ def test_parse_sdag_toml(tmp_path: Path) -> None:
     assert pyproj.tags[0].tag == "online"
     assert not pyproj.tags[0].local
     assert pyproj.detach.job_name == "detached"
+    assert pyproj.extra_dagdirs == ["sdag.extras"]
 
 
 def test_join_pyproj_and_sdag_toml(tmp_path: Path) -> None:
@@ -163,11 +184,12 @@ def test_join_pyproj_and_sdag_toml(tmp_path: Path) -> None:
         tmp_path (Path): Temporary path fixture.
     """
     pyproj_content = """[tool.sdag]
-    dag-dir = "path/to/dagdir"
-    compiled-dag-dir = "path/to/compiled"
-    prepend-compiled-dag-dir = true
+    dagdir = "path/to/dagdir"
+    compiled-dagdir = "path/to/compiled"
+    prepend-compiled-dagdir = true
     slurm-grace-period = 20
     local = true
+    extra_dagdirs = ["sdag.pyproj", "sdag.common"]
 
     [tool.sdag.envs]
     ENV = "value"
@@ -188,10 +210,11 @@ def test_join_pyproj_and_sdag_toml(tmp_path: Path) -> None:
     envs = {"LARGE_ENV" = "large_value"}
     """
 
-    sdag_toml_content = """compiled-dag-dir = "path-alt"
-    prepend-compiled-dag-dir = false
+    sdag_toml_content = """compiled-dagdir = "path-alt"
+    prepend-compiled-dagdir = false
     log-level = "debug"
     local = true
+    extra_dagdirs = ["sdag.common", "sdag.sdag_toml"]
 
     [envs]
     ANOTHER_ENV = "another_value"
@@ -225,9 +248,9 @@ def test_join_pyproj_and_sdag_toml(tmp_path: Path) -> None:
     )
     pyproj.tags.sort(key=lambda t: t.tag)
 
-    assert pyproj.dag_dir == "path/to/dagdir"
-    assert pyproj.compiled_dag_dir == "path-alt"
-    assert not pyproj.prepend_compiled_dag_dir
+    assert pyproj.dagdir == "path/to/dagdir"
+    assert pyproj.compiled_dagdir == "path-alt"
+    assert not pyproj.prepend_compiled_dagdir
     assert pyproj.local
     assert pyproj.log_level == "debug"
     assert pyproj.slurm_grace_period == 20
@@ -249,6 +272,11 @@ def test_join_pyproj_and_sdag_toml(tmp_path: Path) -> None:
     assert pyproj.detach.job_name == "overwritten"
     assert pyproj.detach.partition == "some-partition"
     assert pyproj.detach.qos == "some-qos"
+    assert sorted(pyproj.extra_dagdirs) == [
+        "sdag.common",
+        "sdag.pyproj",
+        "sdag.sdag_toml",
+    ]
 
 
 @pytest.mark.parametrize(

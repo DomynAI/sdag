@@ -91,9 +91,9 @@ def _find_compiled_path(path: str) -> Path:
     if "/" in path:
         return Path(path)
     pyproj = get_pyproj()
-    if not pyproj.prepend_compiled_dag_dir:
+    if not pyproj.prepend_compiled_dagdir:
         return Path(path)
-    return Path(pyproj.compiled_dag_dir) / path
+    return Path(pyproj.compiled_dagdir) / path
 
 
 def _parse_compiled_pipeline(path: str) -> DAG:
@@ -182,7 +182,7 @@ def compile_pipeline(args: Namespace, extras: dict[str, Any]) -> Path:
     )
 
     dag_json = dag.model_dump_json(indent=4, warnings="none", by_alias=True)
-    dst_path = Path(pyproj.compiled_dag_dir)
+    dst_path = Path(pyproj.compiled_dagdir)
     dst_path.mkdir(parents=True, exist_ok=True)
     dag_name = dag.meta.pipeline_name
     dst_name = args.name if args.name is not None else dag_name

@@ -147,5 +147,6 @@ sdag = "sdag.entrypoints:cli"
 sdag-execute = "sdag.entrypoints:sdag_execute"
 
 [tool.sdag]
-dag-dir = "./examples"
+dagdir = "./examples"
 log-level = "info"
+extra_dagdirs = ["sdag._extras"]

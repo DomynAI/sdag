@@ -24,7 +24,7 @@ Create a `<my-package>/workflows` directory and an empty `__init__.py` module in
 
 ```toml title="pyproject.toml"
 [tool.sdag]
-dag-dir = "<my_package>/workflows"
+dagdir = "<my_package>/workflows"
 ```
 
 Your project tree should look like this:
@@ -45,7 +45,7 @@ Create a `src/<my-package>/workflows` directory and an empty `__init__.py` modul
 
 ```toml title="pyproject.toml"
 [tool.sdag]
-dag-dir = "src/<my_package>/workflows"
+dagdir = "src/<my_package>/workflows"
 ```
 
 Your project tree should look like this:
@@ -79,7 +79,7 @@ If you don't like to specify `--local` every time, add the following setting to 
 
 ```toml title="pyproject.toml"
 [tool.sdag]
-dag-dir = "<flat-or-src-layout>/workflows"
+dagdir = "<flat-or-src-layout>/workflows"
 cmd = "bash"
 ```
 
