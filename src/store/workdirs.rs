@@ -133,7 +133,7 @@ fn create_dagdir(path: &Path, max_dagdirs: usize, tasks: &[&Task]) -> io::Result
     if path.exists() {
         let path_str = path.to_string_lossy();
         log::warn!("DAG directory {} already exists, removing...", path_str);
-        fs::remove_dir_all(&path)?;
+        fs::remove_dir_all(path)?;
     }
 
     if let Some(parent_path) = path.parent()
@@ -153,8 +153,8 @@ fn create_dagdir(path: &Path, max_dagdirs: usize, tasks: &[&Task]) -> io::Result
         }
     }
 
-    fs::create_dir_all(&path)?;
-    create_node_dirs(&path, tasks)?;
+    fs::create_dir_all(path)?;
+    create_node_dirs(path, tasks)?;
     Ok(())
 }
 

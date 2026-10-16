@@ -55,7 +55,7 @@ pub fn run(
     }
 
     let mut ctx = Ctx::new(&nodes).unwrap();
-    scheduler::scheduling_loop(&mut nodes, &mut ctx, &cfg, &meta);
+    scheduler::scheduling_loop(&nodes, &mut ctx, &cfg, &meta);
 }
 
 pub fn restart_run(

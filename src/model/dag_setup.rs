@@ -7,7 +7,7 @@ use crate::model::schemas::Cmd;
 pub fn find_root_node(nodes: &[Node]) -> Option<usize> {
     for node in nodes {
         if let Node::Root(root) = node
-            && root.parents.len() == 0
+            && root.parents.is_empty()
         {
             return Some(root.uid);
         }

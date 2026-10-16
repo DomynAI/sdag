@@ -37,16 +37,17 @@ pub fn describe_pipeline(pipeline_path: &str) {
     let homedir = settings::find_homedir().expect("Failed to find the home directory");
     let dag = state::read_dag(&pipeline_path).expect("Failed to read DAG");
     let paths = DirPaths::new(&homedir, &dag.meta.pipeline_name, &dag.meta.hash);
-    let mut cfg = Cfg::default();
-    cfg.dagdir = paths.dagdir;
-    cfg.cachedir = paths.cachedir;
-    cfg.local_cachedir = paths.local_cachedir;
-    cfg.dag_code_hash = dag.meta.code_hash.to_string();
-
+    let cfg = Cfg {
+        dagdir: paths.dagdir,
+        cachedir: paths.cachedir,
+        local_cachedir: paths.local_cachedir,
+        dag_code_hash: dag.meta.code_hash.to_string(),
+        ..Default::default()
+    };
     let mut descriptions = vec![];
     for node in &dag.nodes {
         if let Node::Task(task) = node {
-            let description = get_description(&task, &cfg);
+            let description = get_description(task, &cfg);
             descriptions.push(description);
         }
     }
@@ -59,7 +60,7 @@ fn get_description<'a>(task: &'a Task, cfg: &Cfg) -> TaskDescription<'a> {
     let input_kwargs = state::get_static_input(&task.kwargs, &task.parents);
     let kwargs =
         serde_json::to_string_pretty(&input_kwargs).unwrap_or("[failed to parse]".to_string());
-    let cached = check_caching(&task, &cfg, &input_kwargs);
+    let cached = check_caching(task, cfg, &input_kwargs);
     let artifacts = get_artifacts(&task.artifacts);
 
     TaskDescription {

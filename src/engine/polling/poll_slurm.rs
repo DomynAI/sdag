@@ -12,6 +12,7 @@ use crate::settings::Cfg;
 use log;
 use std::collections::HashMap;
 use std::error::Error;
+use std::mem;
 use std::process::Command;
 
 pub struct SlurmPoller<'a> {
@@ -20,12 +21,12 @@ pub struct SlurmPoller<'a> {
 
 impl<'a> Poller for SlurmPoller<'a> {
     fn poll(&mut self, nodes: &[Node], ctx: &mut Ctx) {
-        if ctx.slurm_jobs.len() == 0 {
+        if ctx.slurm_jobs.is_empty() {
             return;
         }
         let job_ids = get_job_ids(&ctx.slurm_jobs);
         let output = get_output_from_slurm(&job_ids);
-        let slurm_jobs: Vec<_> = ctx.slurm_jobs.drain(..).collect();
+        let slurm_jobs: Vec<_> = mem::take(&mut ctx.slurm_jobs);
         self.assign_status_to_tasks(output, nodes, &slurm_jobs, ctx);
     }
 }
@@ -127,9 +128,9 @@ impl<'a> SlurmPoller<'a> {
 
     fn maybe_save_output(&self, task: &Task) -> Result<(), Box<dyn Error>> {
         if task.is_array() {
-            inline::aggregate_array_output(task, &self.cfg)
+            inline::aggregate_array_output(task, self.cfg)
         } else if let ExecMode::Ext = task.mode {
-            inline::submit_save_ext_output(task, &self.cfg).map_err(|e| e.into())
+            inline::submit_save_ext_output(task, self.cfg).map_err(|e| e.into())
         } else {
             Ok(())
         }
@@ -145,12 +146,12 @@ fn get_job_ids(jobs: &[(usize, String)]) -> String {
 
 fn get_output_from_slurm(job_ids: &str) -> HashMap<String, HashMap<usize, Status>> {
     let mut output = HashMap::new();
-    let sacct_result = run_sacct(&job_ids);
+    let sacct_result = run_sacct(job_ids);
     if let Ok(sacct_response) = sacct_result {
         read_sacct_status(sacct_response, &mut output);
     }
 
-    let squeue_result = run_squeue(&job_ids);
+    let squeue_result = run_squeue(job_ids);
     if let Ok(squeue_response) = squeue_result {
         read_squeue_status(squeue_response, &mut output);
     };
@@ -167,7 +168,7 @@ fn run_sacct(job_ids: &str) -> Result<SacctResponse, Box<dyn Error>> {
 
     let stderr = String::from_utf8(output.stderr);
     if let Ok(msg) = stderr
-        && msg.len() > 0
+        && !msg.is_empty()
     {
         log::error!("Slurm stderr: {msg}")
     }
@@ -188,7 +189,7 @@ fn run_squeue(job_ids: &str) -> Result<SqueueResponse, Box<dyn Error>> {
 
     let stderr = String::from_utf8(output.stderr);
     if let Ok(msg) = stderr
-        && msg.len() > 0
+        && !msg.is_empty()
     {
         log::error!("Slurm stderr: {msg}")
     }
@@ -205,13 +206,13 @@ fn read_sacct_status(
 ) {
     for mut job in sacct_response.jobs {
         let job_id = job.get_job_id().to_string();
-        if job.state.current.len() < 1 {
+        if job.state.current.is_empty() {
             log::warn!("sacct returned no current status for job_id {job_id}");
             continue;
         }
         let status_string = job.state.current.swap_remove(0);
         let status = get_status_from_string(&status_string, &job_id);
-        let tasks = output.entry(job_id).or_insert_with(HashMap::new);
+        let tasks = output.entry(job_id).or_default();
         let task_id = job.array.task_id.number;
         tasks.entry(task_id).or_insert(status.clone());
     }
@@ -222,13 +223,13 @@ fn read_squeue_status(
     output: &mut HashMap<String, HashMap<usize, Status>>,
 ) {
     for mut job in squeue_response.jobs {
-        if job.job_state.len() < 1 {
+        if job.job_state.is_empty() {
             log::debug!("squeue did not return status for job_id {}", job.job_id);
             continue;
         }
         let task_ids = get_squeue_task_ids(&job);
         let job_id = job.job_id;
-        let tasks = output.entry(job_id.clone()).or_insert_with(HashMap::new);
+        let tasks = output.entry(job_id.clone()).or_default();
         let status_string = job.job_state.swap_remove(0);
         let status = get_status_from_string(&status_string, &job_id);
         for task_id in task_ids {
@@ -248,7 +249,7 @@ fn get_status_from_string(status_string: &str, job_id: &str) -> Status {
 }
 
 fn get_squeue_task_ids(job: &SqueueJob) -> Vec<usize> {
-    if job.array_task_id.set || job.array_task_string.len() == 0 {
+    if job.array_task_id.set || job.array_task_string.is_empty() {
         vec![job.array_task_id.number]
     } else {
         parse_array_task_string(&job.array_task_string)

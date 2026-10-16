@@ -55,7 +55,7 @@ impl<'a, 'b> Visitor<()> for NodeVisitor<'a, 'b> {
     fn visit_branch(&mut self, node: &Branch, ctx: &mut Ctx) {
         let parent_statuses = self.get_parent_statuses(&node.parents, &ctx.nodes);
         if all_parents_completed(&parent_statuses) {
-            let status = match inline::submit_branch(node, &self.cfg) {
+            let status = match inline::submit_branch(node, self.cfg) {
                 Ok(choice) => Status::Completed(Completed::Branch(choice)),
                 Err(_) => Status::Failed(Failed::Generic),
             };
@@ -72,9 +72,7 @@ impl<'a, 'b> Visitor<()> for NodeVisitor<'a, 'b> {
             | Status::Running(_)
             | Status::Completed(_)
             | Status::Failed(_)
-            | Status::Skipped => {
-                return;
-            }
+            | Status::Skipped => {}
             Status::ReadyForSubmission => {
                 ctx.jobs.push_back(Job::Task(node.uid));
             }
@@ -85,7 +83,7 @@ impl<'a, 'b> Visitor<()> for NodeVisitor<'a, 'b> {
     fn visit_oneof(&mut self, node: &OneOf, ctx: &mut Ctx) {
         let parent_statuses = self.get_parent_statuses(&node.parents, &ctx.nodes);
         if let Some(uid) = find_completed_parent(&node.parents, &ctx.nodes) {
-            let status = match inline::submit_oneof(node, uid, &self.cfg) {
+            let status = match inline::submit_oneof(node, uid, self.cfg) {
                 Ok(_) => Status::Completed(Completed::OneOf(uid)),
                 Err(e) => {
                     log::error!("Node {}: OneOf failed - {e}", node.uid);
@@ -110,14 +108,14 @@ impl<'a, 'b> NodeVisitor<'a, 'b> {
             let status = &ctx.nodes[uid].status;
             if !status.is_final() {
                 match node {
-                    Node::Root(node) => self.visit_root(&node, ctx),
-                    Node::End(node) => self.visit_end(&node, ctx),
-                    Node::Branch(node) => self.visit_branch(&node, ctx),
-                    Node::OneOf(node) => self.visit_oneof(&node, ctx),
-                    Node::Task(node) => self.visit_task(&node, ctx),
+                    Node::Root(node) => self.visit_root(node, ctx),
+                    Node::End(node) => self.visit_end(node, ctx),
+                    Node::Branch(node) => self.visit_branch(node, ctx),
+                    Node::OneOf(node) => self.visit_oneof(node, ctx),
+                    Node::Task(node) => self.visit_task(node, ctx),
                 }
             }
-            self.propagate(node, &mut ctx.updated, &mut visited);
+            self.propagate(node, &mut ctx.updated, &visited);
         }
     }
 
@@ -140,7 +138,7 @@ impl<'a, 'b> NodeVisitor<'a, 'b> {
         if all_parents_completed(&parent_statuses) {
             ctx.set_status(task.uid, Status::ReadyForSubmission);
             if task.cache.is_enabled() {
-                if caching::submit_validate_cache(task, &self.cfg) {
+                if caching::submit_validate_cache(task, self.cfg) {
                     ctx.set_status(task.uid, Status::Completed(Completed::Cached));
                     return;
                 }

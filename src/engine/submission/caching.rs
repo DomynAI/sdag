@@ -47,7 +47,7 @@ pub fn submit_save_cache(task: &Task, cfg: &Cfg) -> io::Result<u64> {
 }
 
 pub fn validate_cache(input: &HashMap<String, Value>, task: &Task, cfg: &Cfg) -> Option<PathBuf> {
-    match compare_task_with_cache(&input, task, cfg) {
+    match compare_task_with_cache(input, task, cfg) {
         Err(e) => {
             log::info!("Task {}: Cache validation failed - {e}", task.uid);
             None
@@ -90,13 +90,13 @@ fn compare_cache_dir(
     match task.cache {
         Cache::None => false,
         Cache::Output => {
-            if !is_output_readable(task.uid, &path) {
+            if !is_output_readable(task.uid, path) {
                 return false;
             }
             check_artifacts_exist(task.uid, &task.artifacts)
         }
         Cache::Io => {
-            if !is_output_readable(task.uid, &path) {
+            if !is_output_readable(task.uid, path) {
                 return false;
             }
             if !compare_input(task, input, path) {
@@ -105,7 +105,7 @@ fn compare_cache_dir(
             check_artifacts_exist(task.uid, &task.artifacts)
         }
         Cache::Task => {
-            if !is_output_readable(task.uid, &path) {
+            if !is_output_readable(task.uid, path) {
                 return false;
             }
             if !compare_input(task, input, path) {
@@ -117,7 +117,7 @@ fn compare_cache_dir(
             compare_task_code_hash(task.uid, path, &task.code_hash)
         }
         Cache::Project => {
-            if !is_output_readable(task.uid, &path) {
+            if !is_output_readable(task.uid, path) {
                 return false;
             }
             if !compare_input(task, input, path) {
@@ -126,7 +126,7 @@ fn compare_cache_dir(
             if !check_artifacts_exist(task.uid, &task.artifacts) {
                 return false;
             }
-            compare_dag_code_hash(task.uid, path, &dag_code_hash)
+            compare_dag_code_hash(task.uid, path, dag_code_hash)
         }
     }
 }
@@ -226,7 +226,7 @@ fn find_and_save_cache(
     let hash = Uuid::new_v4().to_string();
     let dst_path = base_dst_path.join(hash);
     delete_old_cache(base_dst_path, cache_size)?;
-    state::copy_task_data(&src_path, &dst_path)
+    state::copy_task_data(src_path, &dst_path)
 }
 
 fn delete_old_cache(base_dst_path: &Path, cache_size: usize) -> io::Result<()> {

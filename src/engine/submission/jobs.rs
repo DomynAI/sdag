@@ -41,7 +41,7 @@ pub fn submit_slurm_job_array(
     save_meta(task, cfg)?;
 
     let base_path = cfg.dagdir.join(task.uid.to_string()).join(".shards");
-    if node_ctx.jobs.len() == 0 {
+    if node_ctx.jobs.is_empty() {
         let njobs = shard_input(&mut input, each, task, &base_path)?;
         node_ctx.jobs = vec![JobArray::default(); njobs];
     }
@@ -59,7 +59,7 @@ pub fn submit_slurm_job_array(
     set_array_variables(&mut cmd, &base_path, task, node_ctx, cfg)?;
     let output = cmd.output()?;
     if let Ok(stderr) = String::from_utf8(output.stderr)
-        && stderr.len() > 0
+        && !stderr.is_empty()
     {
         log::error!("Task '{}' submission:\n{stderr}", task.uid);
     }
@@ -101,7 +101,7 @@ pub fn submit_single_slurm_job(
     let output = cmd.output()?;
 
     if let Ok(stderr) = String::from_utf8(output.stderr)
-        && stderr.len() > 0
+        && !stderr.is_empty()
     {
         log::error!("Task '{}' submission:\n{stderr}", task.uid);
     }
@@ -144,7 +144,7 @@ fn shard_input(
         let start = job_id * div + job_id.min(rem);
         let end = start + div + usize::from(job_id < rem);
         let shard = &arr[start..end];
-        state::save_shard(shard, &base_path, job_id)
+        state::save_shard(shard, base_path, job_id)
             .map_err(|e| format!("Task {}: Failed to save shard - {e}", task.uid))?;
     }
     Ok(njobs)
@@ -208,7 +208,7 @@ fn build_command(
     }
 
     if let ExecMode::Ext = task.mode {
-        set_input_as_envs(&mut cmd, &input);
+        set_input_as_envs(&mut cmd, input);
     }
 
     cmd.env("SDAG_TRY_NUM", try_num.to_string())
@@ -259,41 +259,41 @@ fn override_sbatch(
     output: &str,
     error: &str,
 ) {
-    cmd.arg(&format!("--error={error}"));
-    cmd.arg(&format!("--output={output}"));
+    cmd.arg(format!("--error={error}"));
+    cmd.arg(format!("--output={output}"));
 
     let mut job_name = name;
     if let Some(user_job_name) = &slurm.job_name {
         job_name = user_job_name;
     }
-    cmd.arg(&format!("--job-name={job_name}"));
+    cmd.arg(format!("--job-name={job_name}"));
 
     if let Some(nodes) = &slurm.nodes {
-        cmd.arg(&format!("--nodes={nodes}"));
+        cmd.arg(format!("--nodes={nodes}"));
     }
     if let Some(partition) = &slurm.partition {
-        cmd.arg(&format!("--partition={partition}"));
+        cmd.arg(format!("--partition={partition}"));
     }
     if let Some(qos) = &slurm.qos {
-        cmd.arg(&format!("--qos={qos}"));
+        cmd.arg(format!("--qos={qos}"));
     }
     if let Some(gpus_per_node) = &slurm.gpus_per_node {
-        cmd.arg(&format!("--gpus-per-node={gpus_per_node}"));
+        cmd.arg(format!("--gpus-per-node={gpus_per_node}"));
     }
     if let Some(ntasks_per_node) = &slurm.ntasks_per_node {
-        cmd.arg(&format!("--ntasks-per-node={ntasks_per_node}"));
+        cmd.arg(format!("--ntasks-per-node={ntasks_per_node}"));
     }
     if let Some(account) = &slurm.account {
-        cmd.arg(&format!("--account={account}"));
+        cmd.arg(format!("--account={account}"));
     }
     if let Some(cpus_per_task) = &slurm.cpus_per_task {
-        cmd.arg(&format!("--cpus-per-task={cpus_per_task}"));
+        cmd.arg(format!("--cpus-per-task={cpus_per_task}"));
     }
     if let Some(mem) = &slurm.mem {
-        cmd.arg(&format!("--mem={mem}"));
+        cmd.arg(format!("--mem={mem}"));
     }
     if let Some(time) = &slurm.time {
-        cmd.arg(&format!("--time={time}"));
+        cmd.arg(format!("--time={time}"));
     }
 }
 
@@ -369,7 +369,7 @@ fn set_array_variables(
     cfg: &Cfg,
 ) -> Result<(), String> {
     let ids = find_ids_to_be_submitted(&node_ctx.jobs);
-    if ids.len() == 0 {
+    if ids.is_empty() {
         let msg = format!(
             "Task {}: No task ids found during array submission",
             task.uid

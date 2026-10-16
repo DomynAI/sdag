@@ -58,14 +58,14 @@ impl<'a> LocalPoller<'a> {
         ctx.running_cacheable.remove(&task.name);
         ctx.updated.push_back(task.uid);
         if let ExecMode::Ext = task.mode
-            && let Err(e) = inline::submit_save_ext_output(task, &self.cfg)
+            && let Err(e) = inline::submit_save_ext_output(task, self.cfg)
         {
             log::error!("Task {}: Failed to save external output - {e}", task.uid);
             ctx.set_status(task.uid, Status::Failed(Failed::Job(JobType::Local(pid))));
             return;
         }
         if task.cache.is_enabled()
-            && let Err(e) = caching::submit_save_cache(task, &self.cfg)
+            && let Err(e) = caching::submit_save_cache(task, self.cfg)
         {
             log::error!("Task {}: Failed to save cache - {e}", task.uid);
         }

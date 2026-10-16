@@ -57,11 +57,11 @@ pub fn run_task(
 fn submit_job(task: &Task, cfg: &Cfg, meta: &DAGMeta, node_ctx: &mut NodeCtx) {
     node_ctx.try_num = 1;
     match &task.cmd {
-        Cmd::Sbatch => match submit_slurm(&task, &cfg, &meta, node_ctx) {
+        Cmd::Sbatch => match submit_slurm(task, cfg, meta, node_ctx) {
             Ok(job_id) => log::info!("Submitted job '{job_id}'"),
             Err(e) => log::error!("Job submission failed - {e}"),
         },
-        Cmd::Bash => match submit_local_blocking(&task, 1, &cfg, &meta) {
+        Cmd::Bash => match submit_local_blocking(task, 1, cfg, meta) {
             Ok(output) => {
                 if !output.status.success() {
                     log::error!("Job terminated with non-zero exit status");

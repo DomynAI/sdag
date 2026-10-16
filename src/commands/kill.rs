@@ -7,8 +7,8 @@ use crate::settings;
 use crate::store::{state, workdirs};
 use log;
 use std::collections::HashMap;
-use std::io;
 use std::process::{Child, Command, Stdio};
+use std::{io, mem};
 
 pub fn create_kill_lock(name: &str, hash: &str) {
     log::info!("Killing pipeline '{name}' with hash '{hash}'");
@@ -69,7 +69,7 @@ fn kill_process_group(child: &mut Child) -> io::Result<()> {
 }
 
 fn kill_slurm_jobs(ctx: &mut Ctx) -> Result<(), String> {
-    if ctx.slurm_jobs.len() == 0 {
+    if ctx.slurm_jobs.is_empty() {
         log::info!("No running Slurm jobs found");
         return Ok(());
     }
@@ -90,7 +90,7 @@ fn kill_slurm_jobs(ctx: &mut Ctx) -> Result<(), String> {
         return Err("Failed to cancel Slurm jobs".into());
     }
 
-    let killed: Vec<(usize, String)> = ctx.slurm_jobs.drain(..).collect();
+    let killed: Vec<(usize, String)> = mem::take(&mut ctx.slurm_jobs);
     for (uid, job_id) in killed {
         let job_type = JobType::Slurm(job_id.clone());
         ctx.set_status(uid, Status::Failed(Failed::Job(job_type)));

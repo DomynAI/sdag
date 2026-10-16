@@ -59,12 +59,12 @@ struct Summary<'a> {
 }
 
 /// Build and return the summary table.
-fn get_summary_table<'a>(nodes: &[Node], ctx: &Ctx) -> Table {
+fn get_summary_table(nodes: &[Node], ctx: &Ctx) -> Table {
     let mut records = Vec::new();
     for node in nodes {
         if let Node::Task(task) = &node {
             let node_ctx = &ctx.nodes[task.uid];
-            if task.each.is_none() || node_ctx.jobs.len() == 0 {
+            if task.each.is_none() || node_ctx.jobs.is_empty() {
                 records.push(Summary {
                     uid: task.uid,
                     task: &task.name,
