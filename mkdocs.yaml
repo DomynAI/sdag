@@ -1,6 +1,6 @@
 site_name: sdag
-repo_url: https://github.com/igeniusai/sdag
-repo_name: igeniusai/sdag
+repo_url: https://github.com/DomynAI/sdag
+repo_name: DomynAI/sdag
 theme:
   font:
     text: DM Sans
