@@ -3,52 +3,49 @@
 
 import logging
 
-from sdag.models import DAG, CacheableTask, NodeUnion
+from sdag.models import DAG, NodeUnion, TaskNode
 
 logger = logging.getLogger(__name__)
 
 
-def find_all_cacheable_tasks(dag: DAG) -> list[CacheableTask]:
+def find_all_cacheable_tasks(dag: DAG) -> list[str]:
     """Find tasks with caching enabled.
 
     Args:
         dag (DAG): DAG.
-        scope (Literal["local", "global"]): Task scope.
 
     Returns:
-        list[CacheableTask]: Info about tasks with caching
-            enabled.
+        list[str]: Cacheable task json strings.
     """
-    tasks: list[CacheableTask] = []
-    for node in dag.nodes:
-        if node.kind == "task" and node.cache != "none":
-            cacheable = CacheableTask(
-                name=node.name, pipeline=node.pipeline_name, scope=node.scope
-            )
-            tasks.append(cacheable)
-
-    return tasks
+    tasks = _find_all_cacheable_tasks(dag)
+    return [task.model_dump_json() for task in tasks]
 
 
-def find_matching_cacheable_tasks(
-    dag: DAG, tasks: list[str]
-) -> list[CacheableTask]:
-    """."""
-    all_tasks = find_all_cacheable_tasks(dag)
-    return [task for task in all_tasks if task.name in set(tasks)]
+def find_matching_cacheable_tasks(dag: DAG, tasks: list[str]) -> list[str]:
+    """Find tasks with caching enabled mathing user choice.
+
+    Args:
+        dag (DAG): DAG.
+        tasks (list[str]): Tasks selected by the user.
+
+    Returns:
+        list[str]: Cacheable task json strings.
+    """
+    all_tasks = _find_all_cacheable_tasks(dag)
+    return [
+        task.model_dump_json() for task in all_tasks if task.name in set(tasks)
+    ]
 
 
-def find_all_cascade_cacheable_tasks(
-    dag: DAG, tasks: list[str]
-) -> list[CacheableTask]:
-    """Find all cacheable tasks in cascade mode.
+def find_cascade_cacheable_tasks(dag: DAG, tasks: list[str]) -> list[str]:
+    """Find cacheable tasks in cascade mode.
 
     Args:
         dag (DAG): DAG.
         tasks (list[str]): Tasks.
 
     Returns:
-        list[CacheableTask]: Tasks.
+        list[str]: Cacheable task json strings.
     """
     children: dict[int, list[int]] = {}
     _nodes: dict[int, NodeUnion] = {}
@@ -71,18 +68,29 @@ def find_all_cascade_cacheable_tasks(
             to_be_visited.extend(children.get(uid, []))
 
     seen: set[tuple[str, str]] = set()
-    cacheable_tasks: list[CacheableTask] = []
+    cacheable_tasks: list[str] = []
     for uid in sorted(visited):
         node = _nodes[uid]
         if node.kind == "task" and node.cache != "none":
             key = node.name, node.pipeline_name
             if key not in seen:
                 seen.add(key)
-                task = CacheableTask(
-                    name=node.name,
-                    pipeline=node.pipeline_name,
-                    scope=node.scope,
-                )
-                cacheable_tasks.append(task)
+                cacheable_tasks.append(node.model_dump_json())
 
     return cacheable_tasks
+
+
+def _find_all_cacheable_tasks(dag: DAG) -> list[TaskNode]:
+    """Find tasks with caching enabled.
+
+    Args:
+        dag (DAG): DAG.
+
+    Returns:
+        list[TaskNode]: Tasks with caching enabled.
+    """
+    return [
+        node
+        for node in dag.nodes
+        if node.kind == "task" and node.cache != "none"
+    ]

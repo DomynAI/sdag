@@ -188,7 +188,7 @@ class ParserBuilder:
             "prune", help="Prune the cache of a task."
         )
         prune_parser.add_argument(
-            "task",
+            "tasks",
             nargs="*",
             type=str,
             help=(
@@ -217,8 +217,8 @@ class ParserBuilder:
             default=False,
             help=(
                 "Delete the cache of all dependent nodes in the graph."
-                " It is considered if both tasks and pipeline have been"
-                " specified"
+                " It is only considered if both tasks and pipeline have"
+                " been specified"
             ),
         )
 

@@ -401,10 +401,13 @@ class TaskNode(BaseNode):
     envs: dict[str, Any] = Field(default_factory=dict)
     slurm: SlurmOverride = Field(default_factory=SlurmOverride)
     output_artifacts: list[ArtifactEdge] = Field(
-        default_factory=list, serialization_alias="artifacts"
+        default_factory=list, alias="artifacts"
     )
     _artifact_containers: dict[str, ArtifactContainer] = PrivateAttr(
         default_factory=dict
+    )
+    model_config = ConfigDict(
+        extra="forbid", serialize_by_alias=True, validate_by_alias=True
     )
 
     @property
@@ -670,22 +673,6 @@ class CompiledDAG(BaseModel):
     root: RootNode
     end: EndNode
     scope: TraceScope = Field(default_factory=TraceScope)
-
-
-class CacheableTask(BaseModel):
-    """Cacheable task.
-
-    Info about tasks with caching enabled.
-
-    Attributes:
-        name (str): Task name.
-        pipeline (str): Pipeline name.
-        scope (Scope): Task scope.
-    """
-
-    name: str
-    pipeline: str
-    scope: Scope
 
 
 class Each:

@@ -16,7 +16,7 @@ from typing import Any
 import sdag.core as core
 from sdag.cache_pruning import (
     find_all_cacheable_tasks,
-    find_all_cascade_cacheable_tasks,
+    find_cascade_cacheable_tasks,
     find_matching_cacheable_tasks,
 )
 from sdag.compiler import master
@@ -311,7 +311,7 @@ def prune_cache(args: Namespace, extras: dict[str, Any]) -> None:
     Raises:
         ExtraCLIArgsError: Extra argument used.
     """
-    if args.pipeline is None and not args.task:
+    if args.pipeline is None and not args.tasks:
         raise ExtraCLIArgsError(extras)
 
     pyproj = get_pyproj()
@@ -319,13 +319,11 @@ def prune_cache(args: Namespace, extras: dict[str, Any]) -> None:
     configure_logging(pyproj.log_level)
 
     if args.pipeline is None:
-        for task in args.task:
-            core.prune_cache(
-                task_name=task,
-                pipeline_name=args.pipeline,
-                allow_full_prune=True,
-                log_level=pyproj.log_level,
-            )
+        core.prune_cache(
+            tasks=args.tasks,
+            pipeline_name=args.pipeline,
+            log_level=pyproj.log_level,
+        )
         return
 
     dag = _get_dag_from_name_import_or_json(
@@ -333,22 +331,18 @@ def prune_cache(args: Namespace, extras: dict[str, Any]) -> None:
         extra_metadata=args.extra_metadata,
         input_kwargs=extras,
     )
-
     if not args.tasks:
         tasks = find_all_cacheable_tasks(dag)
     elif args.cascade:
-        tasks = find_all_cascade_cacheable_tasks(dag, args.tasks)
+        tasks = find_cascade_cacheable_tasks(dag, args.tasks)
     else:
         tasks = find_matching_cacheable_tasks(dag, args.tasks)
 
-    for task in tasks:
-        pipeline_name = task.pipeline if task.scope == "local" else None
-        core.prune_cache(
-            task_name=task.name,
-            pipeline_name=pipeline_name,
-            allow_full_prune=False,
-            log_level=pyproj.log_level,
-        )
+    core.prune_cache(
+        tasks=tasks,
+        pipeline_name=dag.meta.pipeline_name,
+        log_level=pyproj.log_level,
+    )
 
 
 def view_pipeline(args: Namespace, extras: dict[str, Any]) -> None:
