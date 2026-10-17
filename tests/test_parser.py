@@ -183,7 +183,7 @@ class TestParaserBuilder:
 
         assert args.log_level == "debug"
         assert args.pipeline == "pipeline"
-        assert args.task == ["task1", "task2"]
+        assert args.tasks == ["task1", "task2"]
         assert args.extra_metadata == r'{"a": 1}'
         assert args.fn is prune_cache
 

@@ -88,19 +88,13 @@ mod core {
 
     #[pyfunction]
     #[pyo3(signature=(
-        task_name: "str",
+        tasks: "list[str]",
         pipeline_name: "str | None",
-        allow_full_prune: "bool",
         log_level: "str"
     ) -> "None")]
-    pub fn prune_cache(
-        task_name: &str,
-        pipeline_name: Option<&str>,
-        allow_full_prune: bool,
-        log_level: &str,
-    ) {
+    pub fn prune_cache(tasks: Vec<String>, pipeline_name: Option<&str>, log_level: &str) {
         settings::configure_logging(log_level);
-        commands::prune_cache(task_name, pipeline_name, allow_full_prune);
+        commands::prune_cache(tasks, pipeline_name);
     }
 
     #[pyfunction]

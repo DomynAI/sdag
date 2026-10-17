@@ -188,7 +188,7 @@ class ParserBuilder:
             "prune", help="Prune the cache of a task."
         )
         prune_parser.add_argument(
-            "task",
+            "tasks",
             nargs="*",
             type=str,
             help=(
@@ -208,6 +208,17 @@ class ParserBuilder:
                 " is given, autodiscovery will be skipped. If equal to"
                 " a compiled JSON file, the pipeline data will be taken"
                 " from there, thus skipping compilation entirely."
+            ),
+        )
+
+        prune_parser.add_argument(
+            "--cascade",
+            action=BooleanOptionalAction,
+            default=False,
+            help=(
+                "Delete the cache of all dependent nodes in the graph."
+                " It is only considered if both tasks and pipeline have"
+                " been specified"
             ),
         )
 

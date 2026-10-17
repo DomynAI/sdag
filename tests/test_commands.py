@@ -5,12 +5,11 @@ from pathlib import Path
 
 import pytest
 from sdag.commands import (
-    _find_cacheable_tasks,
     _find_compiled_path,
     _get_dag_from_name_import_or_json,
     _parse_compiled_pipeline,
 )
-from sdag.models import DAG, CacheableTask
+from sdag.models import DAG
 
 
 @pytest.fixture
@@ -36,7 +35,6 @@ def dag() -> DAG:
                 "mode": "ext",
                 "cmd": "bash",
                 "scope": "global",
-                "try_num": 1,
                 "retries": 0,
                 "script": {"kind": "script_path", "path": "script.sh"},
                 "kwargs": [{"key": "k", "value": "v"}],
@@ -59,7 +57,6 @@ def dag() -> DAG:
                 "mode": "ext",
                 "cmd": "bash",
                 "scope": "local",
-                "try_num": 1,
                 "retries": 0,
                 "script": {"kind": "script_path", "path": "script.sh"},
                 "kwargs": [{"key": "k", "value": "v"}],
@@ -90,15 +87,6 @@ def dag() -> DAG:
     }
 
     return DAG.model_validate(dag)
-
-
-def test_find_cacheable_tasks(dag: DAG) -> None:
-    tasks = _find_cacheable_tasks(dag)
-    tasks.sort(key=lambda x: x.name)
-    assert tasks == [
-        CacheableTask(name="task_global", pipeline="dag", scope="global"),
-        CacheableTask(name="task_local", pipeline="dag", scope="local"),
-    ]
 
 
 def test_find_relative_compiled_path() -> None:

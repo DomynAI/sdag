@@ -73,6 +73,7 @@ Prune the cache of tasks and pipelines.
 
 - Prune the cache of a global task: `sdag prune task_name`
 - Prune the cache of multiple tasks of a pipeline: `sdag prune task1 task2 -p pipeline_name`
+- Prune the cache of a task and all its dependencies: `sdag prune task1 -p pipeline_name --cascade`
 - Prune the cache of a pipeline: `sdag prune -p pipeline_name`
 - Prune the whole sdag cache: `sdag prune all`
 

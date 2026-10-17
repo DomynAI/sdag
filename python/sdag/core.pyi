@@ -23,9 +23,8 @@ def kill_run(
     pipeline_name: str, pipeline_hash: str, log_level: str
 ) -> None: ...
 def prune_cache(
-    task_name: str,
+    tasks: list[str],
     pipeline_name: str | None,
-    allow_full_prune: bool,
     log_level: str,
 ) -> None: ...
 def view_pipeline(mermaid: str, log_level: str) -> None: ...
