@@ -150,6 +150,11 @@ impl Task {
     pub fn is_array(&self) -> bool {
         self.each.is_some()
     }
+    pub fn is_dynamic(&self) -> bool {
+        self.parents
+            .iter()
+            .any(|p| matches!(p.kind, ParentKind::Output { .. }))
+    }
 }
 
 impl Children for Task {

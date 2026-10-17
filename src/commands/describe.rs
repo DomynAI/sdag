@@ -3,7 +3,7 @@
 
 use crate::engine::submission::caching;
 use crate::model::nodes::{Node, Task};
-use crate::model::schemas::{Artifact, ParentKind};
+use crate::model::schemas::Artifact;
 use crate::settings::{self, Cfg};
 use crate::store::state;
 use crate::store::workdirs::DirPaths;
@@ -78,7 +78,7 @@ fn check_caching(task: &Task, cfg: &Cfg, input: &HashMap<String, Value>) -> bool
         return false;
     }
 
-    if is_task_dynamic(task) {
+    if task.is_dynamic() {
         log::warn!("Cache of dynamic task '{}' cannot be checked", task.uid);
         return false;
     }
@@ -89,12 +89,6 @@ fn check_caching(task: &Task, cfg: &Cfg, input: &HashMap<String, Value>) -> bool
     }
 
     false
-}
-
-fn is_task_dynamic(task: &Task) -> bool {
-    task.parents
-        .iter()
-        .any(|p| matches!(p.kind, ParentKind::Output { .. }))
 }
 
 fn get_artifacts(artifacts: &[Artifact]) -> String {

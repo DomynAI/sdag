@@ -81,7 +81,7 @@ fn compare_task_with_cache(
     Ok(None)
 }
 
-fn compare_cache_dir(
+pub fn compare_cache_dir(
     path: &Path,
     input: &HashMap<String, Value>,
     task: &Task,

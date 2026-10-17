@@ -144,7 +144,6 @@ pub fn save_script(script: &str, path: &Path) -> io::Result<()> {
 }
 
 pub fn clear_local_cache(task_name: &str, pipeline_name: &str, homedir: &Path) -> io::Result<()> {
-    log::info!("Removing task '{task_name}' (pipeline '{pipeline_name}') cache");
     let path = homedir
         .join(".cache")
         .join("local")
@@ -158,38 +157,36 @@ pub fn clear_local_cache(task_name: &str, pipeline_name: &str, homedir: &Path) -
             task_name,
             pipeline_name
         );
+        return Ok(());
+    }
+    fs::remove_dir_all(path)
+}
+
+pub fn delete_cache_dir(homedir: &Path) -> io::Result<()> {
+    let cache_dir = homedir.join(".cache");
+    fs::remove_dir_all(&cache_dir)
+}
+
+pub fn task_global_cache_exists(task_name: &str, homedir: &Path) -> bool {
+    homedir
+        .join(".cache")
+        .join("global")
+        .join(task_name)
+        .is_dir()
+}
+
+pub fn clear_global_cache(task_name: &str, homedir: &Path) -> io::Result<()> {
+    let path = homedir.join(".cache").join("global").join(task_name);
+    log::debug!("Cache path: '{}'", path.to_string_lossy());
+    if !path.is_dir() {
+        log::warn!("Global cache for task '{}' not found", task_name);
         Ok(())
     } else {
-        log::debug!(
-            "Deleting task '{}' (pipeline '{}') local cache",
-            task_name,
-            pipeline_name
-        );
         fs::remove_dir_all(path)
     }
 }
 
-pub fn clear_global_cache(
-    task_name: &str,
-    allow_full_prune: bool,
-    homedir: &Path,
-) -> io::Result<()> {
-    log::debug!("Removing task '{task_name}' global cache");
-    let cache_dir = homedir.join(".cache");
-    let path = cache_dir.join("global").join(task_name);
-    log::debug!("Cache path: '{}'", path.to_string_lossy());
-
-    if !path.is_dir() {
-        if task_name == "all" && allow_full_prune && cache_dir.is_dir() {
-            log::info!("Deleting the whole cache");
-            return fs::remove_dir_all(&cache_dir);
-        } else {
-            log::warn!("Global cache for task '{}' not found", task_name);
-            return Ok(());
-        }
-    }
-
-    log::info!("Deleting task '{}' global cache", task_name);
+pub fn delete_matching_cache(path: &Path) -> io::Result<()> {
     fs::remove_dir_all(path)
 }
 
