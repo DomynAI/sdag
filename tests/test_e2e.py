@@ -34,6 +34,9 @@ def set_home(
 def test_prune_task(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """Test the cache pruning of a task named 'all'.
 
+    Corner case: If a global task named 'all' exists, the
+    global cache must not be deleted.
+
     Args:
         tmp_path (Path): Temporary path fixture.
         monkeypatch (pytest.MonkeyPatch): Patcher.
@@ -42,27 +45,6 @@ def test_prune_task(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     cached_task_path = cache_path / "global" / "all"
     cached_task_path.mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr("sys.argv", ["sdag", "prune", "all"])
-
-    cli()
-
-    assert not cached_task_path.exists()
-    assert cache_path.exists()
-
-
-@pytest.mark.usefixtures("set_home")
-def test_prune_local_task(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    """Test the cache pruning of a task named 'all'.
-
-    Args:
-        tmp_path (Path): Temporary path fixture.
-        monkeypatch (pytest.MonkeyPatch): Patcher.
-    """
-    cache_path = tmp_path / ".sdag" / ".cache"
-    cached_task_path = cache_path / "local" / "dag" / "task_name"
-    cached_task_path.mkdir(parents=True, exist_ok=True)
-    monkeypatch.setattr(
-        "sys.argv", ["sdag", "prune", "task_name", "-p", "dag"]
-    )
 
     cli()
 
@@ -91,7 +73,13 @@ def test_prune_entire_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 def test_prune_cache_from_json(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Test the cache pruning of a task named 'all'.
+    """Test the cache pruning.
+
+    The pipeline has a global cached task and a local one. The global
+    task has two caches: one that matches the input (hash 'xyz') and
+    another one that doesnt (hash 'abc'). The cache pruning must delete
+    the local cache and the matching global one while leaving 'abc'
+    intact.
 
     Args:
         tmp_path (Path): Temporary path fixture.
@@ -126,7 +114,6 @@ def test_prune_cache_from_json(
                 "code_hash": "xyz",
                 "mode": "ext",
                 "cmd": "bash",
-                "try_num": 1,
                 "retries": 0,
                 "script": {"kind": "script_path", "path": "script.sh"},
                 "kwargs": [{"key": "k", "value": "v"}],
@@ -149,7 +136,6 @@ def test_prune_cache_from_json(
                 "code_hash": "abc",
                 "mode": "ext",
                 "cmd": "bash",
-                "try_num": 1,
                 "retries": 0,
                 "script": {"kind": "script_path", "path": "script.sh"},
                 "kwargs": [{"key": "k", "value": "v"}],
@@ -183,12 +169,38 @@ def test_prune_cache_from_json(
         json.dump(pipeline, f)
 
     cache_path = tmp_path / ".sdag" / ".cache"
-    local_cache_path = (
-        cache_path / "local" / "test_prune_cache_from_json" / "task_local"
-    )
-    global_cache_path = cache_path / "global" / "task_global"
+
+    input_data = {"k": "v"}
+    output_data = {"output": None, "artifacts": []}
+
+    global_cache_path = cache_path / "global" / "task_global" / "xyz"
     global_cache_path.mkdir(parents=True, exist_ok=True)
+    with (global_cache_path / "input.json").open("w") as f:
+        json.dump(input_data, f)
+    with (global_cache_path / "output.json").open("w") as f:
+        json.dump(output_data, f)
+
+    local_cache_path = (
+        cache_path
+        / "local"
+        / "test_prune_cache_from_json"
+        / "task_local"
+        / "xyz"
+    )
     local_cache_path.mkdir(parents=True, exist_ok=True)
+    with (local_cache_path / "input.json").open("w") as f:
+        json.dump(input_data, f)
+    with (local_cache_path / "output.json").open("w") as f:
+        json.dump(output_data, f)
+
+    # This global cache doesn't match and it must survive
+    global_no_match_path = cache_path / "global" / "task_global" / "abc"
+    global_no_match_path.mkdir(parents=True, exist_ok=True)
+    with (global_no_match_path / "input.json").open("w") as f:
+        json.dump({"k": "different-value"}, f)
+    with (global_no_match_path / "output.json").open("w") as f:
+        json.dump(output_data, f)
+
     monkeypatch.setattr(
         "sys.argv", ["sdag", "prune", "-p", str(pipeline_path)]
     )
@@ -198,6 +210,7 @@ def test_prune_cache_from_json(
     assert cache_path.exists()
     assert not local_cache_path.exists()
     assert not global_cache_path.exists()
+    assert global_no_match_path.exists()
 
 
 @pytest.mark.usefixtures("set_home")
@@ -360,7 +373,6 @@ def test_run_pipeline_with_global_caching(
                 "code_hash": "abc",
                 "mode": "ext",
                 "cmd": "bash",
-                "try_num": 1,
                 "retries": 0,
                 "script": {"kind": "script_path", "path": str(script_path)},
                 "kwargs": [{"key": "k", "value": "v"}],
