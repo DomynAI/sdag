@@ -110,7 +110,7 @@ fn delete_matching_cache(task: &Task, cfg: &Cfg, input: &HashMap<String, Value>)
     let cache_path = workdirs::get_task_cache_path(task, cfg);
     for entry in fs::read_dir(cache_path)? {
         let path = entry?.path();
-        if !path.is_dir() {
+        if !path.is_dir() || workdirs::is_temporary(&path) {
             continue;
         }
         if caching::compare_cache_dir(&path, input, task, &cfg.dag_code_hash) {
