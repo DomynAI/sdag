@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 pub fn submit_validate_cache(task: &Task, cfg: &Cfg) -> bool {
@@ -40,7 +41,7 @@ pub fn submit_validate_cache(task: &Task, cfg: &Cfg) -> bool {
     }
 }
 
-pub fn submit_save_cache(task: &Task, cfg: &Cfg) -> io::Result<u64> {
+pub fn submit_save_cache(task: &Task, cfg: &Cfg) -> io::Result<()> {
     let src_path = cfg.dagdir.join(task.uid.to_string());
     let base_dst_path = workdirs::get_task_cache_path(task, cfg);
     find_and_save_cache(&src_path, &base_dst_path, task.cache_size)
@@ -71,7 +72,7 @@ fn compare_task_with_cache(
     let cache_path = workdirs::get_task_cache_path(task, cfg);
     for entry in fs::read_dir(cache_path)? {
         let path = entry?.path();
-        if !path.is_dir() {
+        if !path.is_dir() || workdirs::is_temporary(&path) {
             continue;
         }
         if compare_cache_dir(&path, input, task, &cfg.dag_code_hash) {
@@ -218,15 +219,23 @@ fn replace_cache_ignored_value(
     }
 }
 
-fn find_and_save_cache(
-    src_path: &Path,
-    base_dst_path: &Path,
-    cache_size: usize,
-) -> io::Result<u64> {
+fn find_and_save_cache(src_path: &Path, base_dst_path: &Path, cache_size: usize) -> io::Result<()> {
+    fs::create_dir_all(base_dst_path)?;
     let hash = Uuid::new_v4().to_string();
-    let dst_path = base_dst_path.join(hash);
-    delete_old_cache(base_dst_path, cache_size)?;
-    state::copy_task_data(src_path, &dst_path)
+    let tmp_path = base_dst_path.join(format!(".tmp-{hash}"));
+    if let Err(e) = state::copy_task_data(src_path, &tmp_path) {
+        let _ = fs::remove_dir_all(tmp_path);
+        return Err(e);
+    }
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+
+    let filename = format!("{now:0>20}-{hash}");
+    let dst_path = base_dst_path.join(filename);
+    fs::rename(&tmp_path, dst_path)?;
+    delete_old_cache(base_dst_path, cache_size)
 }
 
 fn delete_old_cache(base_dst_path: &Path, cache_size: usize) -> io::Result<()> {
@@ -236,14 +245,24 @@ fn delete_old_cache(base_dst_path: &Path, cache_size: usize) -> io::Result<()> {
 
     let subfolders = workdirs::get_subfolder_creation_dates(base_dst_path)?;
     let nsubfolders = subfolders.len();
-    log::debug!("Currenct cache size: '{}'", nsubfolders);
+    log::debug!("Current cache size: '{}'", nsubfolders);
 
-    let ndel = 1 + nsubfolders as i64 - cache_size as i64;
+    let ndel = nsubfolders as i64 - cache_size as i64;
     if cache_size > 0 && ndel > 0 {
         log::debug!("Number of cache folders to be deleted: {}", ndel);
         for (dir, _) in &subfolders[..ndel as usize] {
             log::debug!("Removing '{}'", dir.to_string_lossy());
-            fs::remove_dir_all(dir)?;
+            let hash = Uuid::new_v4().to_string();
+            let tmp_path = base_dst_path.join(format!(".trash-{hash}"));
+            match fs::rename(dir, &tmp_path) {
+                Ok(()) => {}
+                Err(e) if e.kind() == io::ErrorKind::NotFound => continue,
+                Err(e) => return Err(e),
+            }
+
+            if let Err(e) = fs::remove_dir_all(&tmp_path) {
+                log::warn!("Failed to delete old cache - {e}");
+            }
         }
     }
     Ok(())
@@ -256,6 +275,8 @@ mod tests {
     use crate::store::workdirs::{self, DirPaths, FileNames};
     use serde_json::Value;
     use std::env;
+    use std::thread;
+    use std::time::{Duration, SystemTime};
     use uuid::Uuid;
 
     fn get_tmp_dir() -> PathBuf {
@@ -511,5 +532,111 @@ mod tests {
 
         task.cache = Cache::Project;
         validate_cache(&input, &task, &cfg).unwrap();
+    }
+
+    fn make_cache_src(src: &Path) -> io::Result<()> {
+        fs::create_dir_all(src)?;
+        fs::write(src.join(FileNames::Input.as_str()), "{}")?;
+        fs::write(src.join(FileNames::Meta.as_str()), "{}")?;
+        fs::write(src.join(FileNames::Output.as_str()), "{}")
+    }
+
+    #[test]
+    fn test_sequential_save_cache() {
+        let tmp_dir = get_tmp_dir();
+        let base_dst = tmp_dir.join("dst");
+        let one_hour_ago = SystemTime::now() - Duration::from_hours(1);
+        for i in 0..2 {
+            let hash = Uuid::new_v4().to_string();
+            let src = tmp_dir.join(&hash);
+            make_cache_src(&src).unwrap();
+            find_and_save_cache(&src, &base_dst, 1).unwrap();
+            // Change the mtime to make it deterministic
+            if i == 0 {
+                let path = base_dst
+                    .read_dir()
+                    .unwrap()
+                    .map(|e| e.unwrap().path())
+                    .next()
+                    .unwrap();
+                fs::File::open(path)
+                    .unwrap()
+                    .set_modified(one_hour_ago)
+                    .unwrap();
+            }
+        }
+        let folder_paths: Vec<PathBuf> = fs::read_dir(&base_dst)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .collect();
+
+        assert_eq!(folder_paths.len(), 1);
+
+        // Check it's actually the most recent one
+        let path = &folder_paths[0];
+        let mtime = fs::metadata(path).unwrap().modified().unwrap();
+        assert!(mtime > one_hour_ago)
+    }
+
+    #[test]
+    fn test_concurrent_cache_writes() {
+        let tmp_dir = get_tmp_dir();
+        let base_dst = tmp_dir.join("dst");
+        thread::scope(|s| {
+            for _ in 0..8 {
+                s.spawn(|| {
+                    let hash = Uuid::new_v4().to_string();
+                    let src = tmp_dir.join(&hash);
+                    make_cache_src(&src).unwrap();
+                    find_and_save_cache(&src, &base_dst, 2).unwrap();
+                });
+            }
+        });
+
+        let folder_paths: Vec<PathBuf> = fs::read_dir(&base_dst)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .collect();
+
+        // input, meta, and output files exist
+        for path in &folder_paths {
+            assert!(path.join(FileNames::Input.as_str()).is_file());
+            assert!(path.join(FileNames::Output.as_str()).is_file());
+            assert!(path.join(FileNames::Meta.as_str()).is_file());
+        }
+
+        // cache size + number of threads
+        let nfolders = folder_paths.len();
+        assert!(nfolders >= 1);
+        assert!(nfolders <= 10);
+
+        // Check no hidden trash or tmp folders are left
+        let folder_names: Vec<String> = folder_paths
+            .iter()
+            .map(|e| e.file_name().unwrap().to_string_lossy().into())
+            .collect();
+        assert!(!folder_names.iter().any(|n| n.starts_with('.')));
+    }
+
+    #[test]
+    fn test_cache_with_same_mtime_are_deleted_in_order() {
+        let tmp_dir = get_tmp_dir();
+        let path_old = tmp_dir.join(format!("{:020}-a", 1));
+        let path_new = tmp_dir.join(format!("{:020}-b", 2));
+        make_cache_src(&path_new).unwrap();
+        make_cache_src(&path_old).unwrap();
+
+        let now = SystemTime::now();
+        fs::File::open(&path_old)
+            .unwrap()
+            .set_modified(now)
+            .unwrap();
+        fs::File::open(&path_new)
+            .unwrap()
+            .set_modified(now)
+            .unwrap();
+        delete_old_cache(&tmp_dir, 1).unwrap();
+        assert!(!path_old.is_dir());
+        assert!(path_new.is_dir());
     }
 }

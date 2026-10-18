@@ -8,7 +8,7 @@ use log;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::SystemTime;
 
 pub fn get_task_cache_path(task: &Task, cfg: &Cfg) -> PathBuf {
     match task.scope {
@@ -86,14 +86,18 @@ pub fn get_subfolder_creation_dates(base_path: &Path) -> io::Result<Vec<(PathBuf
     let mut folders = Vec::new();
     for entry in fs::read_dir(base_path)? {
         let path = entry?.path();
-        if path.is_dir() {
+        if path.is_dir() && !is_temporary(&path) {
             log::debug!("Detected old directory {}", path.to_string_lossy());
-            let meta = fs::metadata(&path)?;
+            let meta = match fs::metadata(&path) {
+                Ok(meta) => meta,
+                Err(e) if e.kind() == io::ErrorKind::NotFound => continue,
+                Err(e) => return Err(e),
+            };
             let modified = meta.modified()?;
             folders.push((path, modified))
         }
     }
-    folders.sort_by_key(|x| x.1.duration_since(UNIX_EPOCH).expect("Time went backwards"));
+    folders.sort_by(|a, b| a.1.cmp(&b.1).then_with(|| a.0.cmp(&b.0)));
     Ok(folders)
 }
 
@@ -111,6 +115,11 @@ pub fn create_dir_structure(cfg: &Cfg, nodes: &[Node]) -> io::Result<()> {
 
     log::info!("Directory structure creation completed");
     Ok(())
+}
+
+pub fn is_temporary(path: &Path) -> bool {
+    path.file_name()
+        .is_some_and(|x| x.to_string_lossy().starts_with('.'))
 }
 
 fn create_homedir(path: &Path) -> io::Result<()> {
