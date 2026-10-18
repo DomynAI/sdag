@@ -211,7 +211,9 @@ fn read_sacct_status(
             continue;
         }
         let status_string = job.state.current.swap_remove(0);
-        let status = get_status_from_string(&status_string, &job_id);
+        let Some(status) = get_status_from_string(&status_string, &job_id) else {
+            continue;
+        };
         let tasks = output.entry(job_id).or_default();
         let task_id = job.array.task_id.number;
         tasks.entry(task_id).or_insert(status.clone());
@@ -231,20 +233,45 @@ fn read_squeue_status(
         let job_id = job.job_id;
         let tasks = output.entry(job_id.clone()).or_default();
         let status_string = job.job_state.swap_remove(0);
-        let status = get_status_from_string(&status_string, &job_id);
+        let Some(status) = get_status_from_string(&status_string, &job_id) else {
+            continue;
+        };
         for task_id in task_ids {
             tasks.insert(task_id, status.clone());
         }
     }
 }
 
-fn get_status_from_string(status_string: &str, job_id: &str) -> Status {
+fn get_status_from_string(status_string: &str, job_id: &str) -> Option<Status> {
     let job_type = JobType::Slurm(job_id.to_string());
     match status_string {
-        "COMPLETED" => Status::Completed(Completed::Job(job_type)),
-        "CONFIGURING" | "PENDING" => Status::Pending(job_type),
-        "RUNNING" | "COMPLETING" => Status::Running(job_type),
-        _ => Status::Failed(Failed::Job(job_type)),
+        "COMPLETED" => Some(Status::Completed(Completed::Job(job_type))),
+        "CONFIGURING" | "PENDING" | "REQUEUED" | "REQUEUE_FED" | "RESV_DEL_HOLD" | "EXPEDITING" => {
+            Some(Status::Pending(job_type))
+        }
+        "REQUEUE_HOLD" => {
+            log::warn!(
+                "Job '{job_id}' is in state 'REQUEUE_HOLD'. Treating as pending but \
+            it's worth a manual check as it can block the pipeline."
+            );
+            Some(Status::Pending(job_type))
+        }
+        "STOPPED" => {
+            log::warn!(
+                "Job '{job_id}' is in state 'STOPPED'. Treating as running but \
+            it's worth a manual check as it can block the pipeline."
+            );
+            Some(Status::Running(job_type))
+        }
+        "RUNNING" | "COMPLETING" | "STAGE_OUT" | "SIGNALING" | "RESIZING" | "SUSPENDED" => {
+            Some(Status::Running(job_type))
+        }
+        "FAILED" | "CANCELLED" | "TIMEOUT" | "OUT_OF_MEMORY" | "DEADLINE" | "NODE_FAIL"
+        | "BOOT_FAIL" | "SPECIAL_EXIT" | "PREEMPTED" => Some(Status::Failed(Failed::Job(job_type))),
+        s => {
+            log::warn!("Job '{job_id}' is in unknown status '{s}'. Treating it as missing.");
+            None
+        }
     }
 }
 
@@ -407,16 +434,25 @@ mod tests {
     fn test_get_status_from_string() {
         assert!(matches!(
             get_status_from_string("COMPLETED", "1"),
-            Status::Completed(Completed::Job(_))
+            Some(Status::Completed(Completed::Job(_)))
         ));
         assert!(matches!(
             get_status_from_string("PENDING", "1"),
-            Status::Pending(JobType::Slurm(_))
+            Some(Status::Pending(JobType::Slurm(_)))
         ));
         assert!(matches!(
             get_status_from_string("RUNNING", "1"),
-            Status::Running(JobType::Slurm(_))
+            Some(Status::Running(JobType::Slurm(_)))
         ));
+        assert!(matches!(
+            get_status_from_string("REQUEUE_HOLD", "1"),
+            Some(Status::Pending(JobType::Slurm(_)))
+        ));
+        assert!(matches!(
+            get_status_from_string("STOPPED", "1"),
+            Some(Status::Running(JobType::Slurm(_)))
+        ));
+        assert!(get_status_from_string("???", "1").is_none());
     }
 
     #[test]
