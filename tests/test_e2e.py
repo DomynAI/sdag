@@ -527,6 +527,7 @@ def test_print_pipeline_status(tmp_path: Path) -> None:
             "log_level": "info",
             "dag_code_hash": "asdf234",
             "fail_fast": False,
+            "cache_lock": False,
         },
         "meta": {
             "pipeline_name": "hello_world",
