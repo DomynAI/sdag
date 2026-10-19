@@ -108,7 +108,7 @@ to activate it. Execute:
 pytest
 ```
 
-to run the the quick Python test suite and:
+to run the quick Python test suite and:
 
 ```sh
 pytest --runslow

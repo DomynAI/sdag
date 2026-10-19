@@ -13,7 +13,7 @@ The scheduler checkpoints its status. So, in case of failures it can be restarte
 sdag restart <pipeline-name>
 ```
 
-Once restarted, it get from Slurm the status of the supposedly running jobs to update the graph state. However, all previously running local jobs (that get killed if the scheduler goes down) will be marked as failed.
+Once restarted, it gets from Slurm the status of the supposedly running jobs to update the graph state. However, all previously running local jobs (that get killed if the scheduler goes down) are marked as failed.
 
 ## Task failures
 
@@ -46,13 +46,13 @@ Run:
 sdag run failure --local
 ```
 
-to execute the pipeline. As expected, `failed_task` will fail and all dependent nodes will be skipped. If you fix the bug and the graph structure doesn't change, you can retry the run and see if it completes successfully:
+to execute the pipeline. As expected, `failed_task` fails and all dependent nodes are skipped. If you fix the bug and the graph structure doesn't change, you can retry the run and see if it completes successfully:
 
 ```sh
 sdag retry failure
 ```
 
-`retry` will reset all failed and skipped task before continuing the run. If no task failed or get skipped, then `sdag retry` it's virtually identical to `sdag restart` of the previous section. You can also set the number of retries for a task. Modify `failed_task` as follows:
+`retry` will reset all failed and skipped tasks before continuing the run. If no tasks failed or get skipped, then `sdag retry` is virtually identical to the `sdag restart` command of the previous section. You can also set the number of retries for a task. Modify `failed_task` as follows:
 
 ```py
 @failure.task(script, retries=2)

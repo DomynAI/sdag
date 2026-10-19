@@ -1,5 +1,11 @@
 # Running Pipelines on Slurm
 
+## Requirements
+
+To correctly monitor jobs, sdag requires the `--json` option to be available both to `squeue` and `sacct`.
+
+## Running on Slurm
+
 Let's consider the pipeline of the previous [Section](./hello_world.md):
 
 ```py title="hello.py"
@@ -16,7 +22,7 @@ def say_hello(name: str):
     print(f"hello from {name}")
 ```
 
-So, far, the the `--local` option is used to run tasks locally. There are several ways to let it Run on Slurm.
+So far, the `--local` option is used to run tasks locally. There are several ways to run them on Slurm instead.
 
 
 === "Custom scripts"
@@ -58,7 +64,7 @@ So, far, the the `--local` option is used to run tasks locally. There are severa
     time="00:02:00"
     ```
 
-    These configurations will be applied globally to all tasks. Check out the [Configuration](../configurations.md) section for details and the [Tags](../advanced/tags.md) section for configuring groups of tasks.
+    These configurations are applied globally to all tasks. Check out the [Configuration](../configurations.md) section for details and the [Tags](../advanced/tags.md) section for configuring groups of tasks.
 
 === "Node override"
     Modify the pipeline as follows:

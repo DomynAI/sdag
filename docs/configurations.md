@@ -13,15 +13,15 @@ Configurations must be set under `[tool.sdag]`. Here are the available options:
 | local                        | false                  | If true, compile all tasks as local bash processes |
 | prepend-compiled-dagdir      | true                   | Prepend the `compiled-dagdir` so you can write `sdag run dag.json` instead of `sdag run ./compiled-pipelines/dag.json` |
 | log-level                    | "info"                 | Compiler, scheduler, and task log level |
-| time_between_polls           | 5                      | Time between successive scheduler Slurm polls (seconds) |
+| time-between-polls           | 5                      | Time between successive scheduler Slurm polls (seconds) |
 | max-concurrency              | 0                      | Maximum number of tasks running at the same time. Set to zero to allow any number of tasks to run at the same time |
 | slurm-grace-period           | 60                     | Maximum number of times a task can be missing from the Slurm output without considering it as failed. |
 | max-concurrent-runs          | 20                     | Maximum number of runs of the same pipeline kept by sdag. Set to 0 to keep all runs. |
 | fail-fast                    | false                  | If true, kill the scheduler and all running jobs if any task fails. |
 | cache-lock                   | true                   | If true, block the submission of cacheable tasks if a matching one is already running. |
-| envs                         | {}                     | Environment variables that will be available to every task |
+| envs                         | {}                     | Environment variables available to every task |
 | detach                       | Check out the [Detaching Commands](advanced/detaching.md) section for details | Sbatch options for detached jobs. |
-| extra-dagdirs                | []                     | Import strings in the form 'path.to.module' of extra packages pipelines will be searched into. Useful to import pipelines from dependencies. |
+| extra-dagdirs                | []                     | Import strings in the form 'path.to.module' of extra packages pipelines are searched into. Useful to import pipelines from dependencies. |
 
 In the `pyproject.toml` file you can also set a number of Sbatch options that will override those set in scripts or inside pipelines:
 
@@ -30,7 +30,7 @@ In the `pyproject.toml` file you can also set a number of Sbatch options that wi
 | job-name         | Job name |
 | nodes            | Number of nodes |
 | account          | Account name |
-| partition        | Partiton |
+| partition        | Partition |
 | qos              | Quality of Service |
 | ntasks-per-node  | Number of tasks per node |
 | cpus-per-task    | Number of CPUs per task |
@@ -44,7 +44,7 @@ Check out the official [documentation](https://slurm.schedmd.com/sbatch.html) fo
 
 ## .sdag.toml
 
-If available, this file located in the main project directory. It has the exact same schema of `pyproject.toml`. However, configurations must not be placed under `[tool.sdag]`.
+If available, this file must be located in the main project directory. It has the exact same schema as `pyproject.toml`. However, configurations must not be placed under `[tool.sdag]`.
 
 === "`pyproject.toml`"
 
@@ -81,7 +81,7 @@ If available, this file located in the main project directory. It has the exact 
     local = true
     ```
 
-All configurations set in the `.sdag.toml` have higher priority with respect to those in `pyproject.toml` and they will override them when conflicting.
+All configurations set in the `.sdag.toml` have higher priority than those in `pyproject.toml` and they will override them when conflicting.
 `.sdag.toml` is often ignored from git (although nothing prevents you from committing it if you find it useful) and treated somewhat like a `.env` to set things you might not want to push to a remote repo (like the Slurm `account` or `qos`). You can also use it to define machine-specific configurations that must override the default ones to transparently adapt the codebase to different clusters.
 
 ## Environment variables
@@ -90,5 +90,5 @@ Most environment variables are managed by the scheduler, so users don't really h
 
 | Environment variable   | Description |
 |------------------------|-------------|
-| `SDAG_HOME`            | Path of the sdag working directory. It's `~` by default. Inside it, a `.sdag` directory will be created. |
+| `SDAG_HOME`            | Path of the sdag working directory. It's `~` by default. Inside it, a `.sdag` directory is created. |
 | `SDAG_BASE_PATH`       | Base path of all artifacts. If set, it's automatically prepended to all artifacts if defined through relative paths.        |

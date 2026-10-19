@@ -114,7 +114,7 @@ Here, `final_task` will only run if at least one between `first_alternative` and
 sdag run oneof_example --local
 ```
 
-You can also use `oneof` when multiple concurrent tasks executed. It will become the first task of the pool that completes the execution without errors.
+You can also use `oneof` when multiple concurrent tasks are executed. It will become the first task of the pool that completes the execution without errors.
 
 ```py
 @pipeline

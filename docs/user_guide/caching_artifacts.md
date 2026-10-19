@@ -28,9 +28,9 @@ When this pipeline is executed the first time via:
 sdag run cached --local
 ```
 
-both tasks will be scheduled. When executed again, `cached_task` will be cached, so it will be marked as completed without execution. For caching to be validated, all input values must match with the cached ones. You can try to modify the value of `a` to check the cache gets invalidated. You can increase the `cache_size` in the decorator (which is equal to `1` by default) to account for multiple values of `a`.
+both tasks are scheduled. When executed again, `cached_task` will be cached, so it will be marked as completed without execution. For caching to be validated, all input values must match with the cached ones. You can try to modify the value of `a` to check the cache gets invalidated. You can increase the `cache_size` in the decorator (which is equal to `1` by default) to account for multiple values of `a`.
 
-The cache is bound to a task name. Many times, instead of increasing the cache size you can change the task name to provide it a whole new cache. Copy the following snippet into the same module:
+The cache is bound to a task name. Often, instead of increasing the cache size you can change the task name to provide it a whole new cache. Copy the following snippet into the same module:
 
 ```py title="caching.py"
 @pipeline
@@ -117,7 +117,7 @@ sdag prune create_file -p dag_with_artifact
 
 to delete the cache of the `create_file` task. Check out the [CLI](../cli.md) section for details.
 
-## Caching options and locking
+## Caching options
 
 Several caching options are available:
 
@@ -130,7 +130,9 @@ Several caching options are available:
 | `"project"`  | Same as `"io"` but the code of all internal modules imported during the pipeline compilation must also match. |
 
 
-By default a cached task lock is enabled. Consider the following pipeline:
+## Cache locking
+
+By default, a cached task lock is enabled. Consider the following pipeline:
 
 ```py title="cache_lock.py"
 from sdag import pipeline, script
@@ -169,10 +171,15 @@ def lock_cache(a: int) -> None:
 If you execute it through the command:
 
 ```sh
-sdag run cache --local
+sdag run cache_lock --local
 ```
 
-You will see that only two tasks will be actually executed, the other ones will wait and then get cached after the successful completion of the running tasks. You can turn off this feature by disabling the `cache-lock` flag in the `pyproject.toml` [configurations](../configurations.md).
+You will see that only two tasks will be actually executed, the other ones will wait and then get cached after the successful completion of the running tasks. To be matching, two conditions must hold:
+
+1. The tasks must share the same cache, which means they must have the same name and scope. The scope of a task can be local to a pipeline like `lock_cache` in the example or global as shown in the [Nested Calls](../advanced/nested_calls.md) section.
+2. Their inputs are equal, ignoring any values listed in `cache_ignore`. This condition doesn't apply when `cache="output"`.
+
+The example sets `cache_size=2` so that the results for `a=1` and `a=2` both fit in the cache. You can turn off this feature by disabling the `cache-lock` flag in the `pyproject.toml` [configurations](../configurations.md).
 
 !!! info
     Check out the [Slurm](./hello_world_slurm.md) section to run this example on Slurm.

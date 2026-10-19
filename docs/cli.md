@@ -46,7 +46,7 @@ Restart the scheduler from where it left off when it was killed.
 
 ### `retry`
 
-Reset all failed and skipped task before restarting the run. it's virtually equivalent to `sdag restart` if no tasks failed or were skipped.
+Reset all failed and skipped tasks before restarting the run. It's virtually equivalent to `sdag restart` if no tasks failed or were skipped.
 
 - Retry the last run: `sdag retry pipeline_name`
 - Retry a specific run: `sdag retry pipeline_name --hash xxx`
@@ -65,7 +65,7 @@ Print information about the tasks of a pipeline. The table will display things l
 
 - Describe a compiled pipeline: `sdag describe path/to/compiled_pipeline.json`
 - Compile and describe a pipeline from the import string: `sdag describe path.to.module:pipeline_name`
-- Compiled and describe a pipeline from its name: `sdag describe pipeline_name`
+- Compile and describe a pipeline from its name: `sdag describe pipeline_name`
 
 ### `prune`
 

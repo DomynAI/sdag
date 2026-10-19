@@ -36,7 +36,7 @@ sdag run process_in_batches --local --input-path=input --base-output=output
 
 ## Job Arrays
 
-The approach shown in the previous section is very flexible. However, there is a drawbrack. If the number of splits is too high, many tiny jobs will be created, thus putting significant pressure on the Slurm queuing system. For this reason, only on Slurm it is possible to leverage `each` to orchestrate batch processing with job arrays:
+The approach shown in the previous section is very flexible. However, there is a drawback. If the number of splits is too high, many tiny jobs will be created, thus putting significant pressure on the Slurm queuing system. For this reason, only on Slurm it is possible to leverage `each` to orchestrate batch processing with job arrays:
 
 ```py
 from sdag import each, pipeline, script
@@ -60,7 +60,7 @@ def gather(items: list[list[str]]) -> None:
     print(f"collected items: {items}")
 ```
 
-`shards` here can also be the output of a task but it must always be a list. Shards are equally split into an array of two jobs (the number of jobs is automatically decreased if the number of items is lower than that). If retries are enabled, Only failed jobs are resubmitted. Other than that, an array mostly behaves like a single task and its cache is also unique. This is in contrast with the previous example, where each split had its own cache. This example only runs on Slurm:
+`shards` here can also be the output of a task but it must always be a list. Shards are equally split into an array of two jobs (the number of jobs is automatically decreased if the number of items is lower than that). If retries are enabled, only failed jobs are resubmitted. Other than that, an array mostly behaves like a single task and its cache is also unique. This is in contrast with the previous example, where each split had its own cache. This example only runs on Slurm:
 
 ```sh
 sdag run job_array

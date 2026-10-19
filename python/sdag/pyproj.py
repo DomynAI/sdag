@@ -137,7 +137,7 @@ class Pyproj(SlurmOverride):
         alias="slurm-grace-period", default=60, ge=0
     )
     max_concurrent_runs: int = Field(
-        alias="max-concurrent-runs", default=20, gt=0
+        alias="max-concurrent-runs", default=20, ge=0
     )
     fail_fast: bool = Field(alias="fail-fast", default=False)
     detach: DetachOptions = Field(default_factory=DetachOptions)
