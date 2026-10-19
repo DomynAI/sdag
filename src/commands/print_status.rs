@@ -22,7 +22,7 @@ pub fn print_status(pipeline_name: &str, pipeline_hash: &str) -> Result<(), Stri
     let meta = ckpt.meta.into_owned();
     let nodes = ckpt.nodes.into_owned();
     let node_ctxs = ckpt.node_ctxs.into_owned();
-    let ctx = Ctx::from_checkpoint(&nodes, node_ctxs);
+    let ctx = Ctx::from_checkpoint(node_ctxs);
 
     summary::print_summary(&nodes, &ctx, pipeline_name, &meta.hash);
     Ok(())

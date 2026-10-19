@@ -24,7 +24,7 @@ def test_parse_pyproject(tmp_path: Path) -> None:
     slurm-grace-period = 50
     max-concurrent-runs = 2
     local = true
-    extra_dagdirs = ["sdag.extras"]
+    extra-dagdirs = ["sdag.extras"]
 
     [tool.sdag.envs]
     ENV="value"
@@ -103,7 +103,7 @@ def test_wrong_extra_dagdirs_are_blocked(tmp_path: Path) -> None:
         tmp_path (Path): Temporary path fixture.
     """
     content = """[[tool.sdag.tags]]
-    extra_dagdirs = ["some/path"]
+    extra-dagdirs = ["some/path"]
     """
     path = tmp_path / "pyproject.toml"
     with path.open("w") as f:
@@ -141,7 +141,7 @@ def test_parse_sdag_toml(tmp_path: Path) -> None:
     slurm-grace-period = 50
     max-concurrent-runs = 2
     local = true
-    extra_dagdirs = ["sdag.extras"]
+    extra-dagdirs = ["sdag.extras"]
 
     [envs]
     ENV="value"
@@ -189,7 +189,7 @@ def test_join_pyproj_and_sdag_toml(tmp_path: Path) -> None:
     prepend-compiled-dagdir = true
     slurm-grace-period = 20
     local = true
-    extra_dagdirs = ["sdag.pyproj", "sdag.common"]
+    extra-dagdirs = ["sdag.pyproj", "sdag.common"]
 
     [tool.sdag.envs]
     ENV = "value"
@@ -214,7 +214,7 @@ def test_join_pyproj_and_sdag_toml(tmp_path: Path) -> None:
     prepend-compiled-dagdir = false
     log-level = "debug"
     local = true
-    extra_dagdirs = ["sdag.common", "sdag.sdag_toml"]
+    extra-dagdirs = ["sdag.common", "sdag.sdag_toml"]
 
     [envs]
     ANOTHER_ENV = "another_value"

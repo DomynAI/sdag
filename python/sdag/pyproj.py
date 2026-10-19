@@ -107,7 +107,9 @@ class Pyproj(SlurmOverride):
         detach (DetachOptions): Detached command options. They are
             ignored if the command is not detached.
         fail_fast (bool): Kill the scheduler and all running tasks if
-            any of them fails.
+            any of them fails. Defaults to False.
+        cache_lock (bool): Block the submission of cacheable tasks if
+            another matching one is already running. Defaults to True.
         envs (dict[str, str]): Environment variables added to all tasks.
             They have higher priority with respect to the ones set inside
             pipelines.
@@ -139,8 +141,11 @@ class Pyproj(SlurmOverride):
     )
     fail_fast: bool = Field(alias="fail-fast", default=False)
     detach: DetachOptions = Field(default_factory=DetachOptions)
+    cache_lock: bool = Field(alias="cache-lock", default=True)
     envs: dict[str, str] = Field(default_factory=dict)
-    extra_dagdirs: list[str] = Field(default_factory=list)
+    extra_dagdirs: list[str] = Field(
+        alias="extra-dagdirs", default_factory=list
+    )
     tags: list[SDAGTag] = Field(default_factory=list)
 
     model_config = ConfigDict(
@@ -331,8 +336,8 @@ def _join_configs(
     sdag_toml_tags = sdag_toml_dict.get("tags", [])
     pyproj_detach = pyproj_dict.get("detach", {})
     sdag_toml_detach = sdag_toml_dict.get("detach", {})
-    pyproj_extras = pyproj_dict.get("extra_dagdirs", [])
-    sdag_toml_extras = sdag_toml_dict.get("extra_dagdirs", [])
+    pyproj_extras = pyproj_dict.get("extra-dagdirs", [])
+    sdag_toml_extras = sdag_toml_dict.get("extra-dagdirs", [])
 
     if not isinstance(pyproj_tags, list) or not isinstance(
         sdag_toml_tags, list
@@ -348,7 +353,7 @@ def _join_configs(
     configs["envs"] = pyproj_envs | sdag_envs
     configs["tags"] = list(tag_dict.values())
     configs["detach"] = pyproj_detach | sdag_toml_detach
-    configs["extra_dagdirs"] = list(set(pyproj_extras))
+    configs["extra-dagdirs"] = list(set(pyproj_extras))
 
     return configs
 

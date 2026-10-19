@@ -18,9 +18,10 @@ Configurations must be set under `[tool.sdag]`. Here are the available options:
 | slurm-grace-period           | 60                     | Maximum number of times a task can be missing from the Slurm output without considering it as failed. |
 | max-concurrent-runs          | 20                     | Maximum number of runs of the same pipeline kept by sdag. Set to 0 to keep all runs. |
 | fail-fast                    | false                  | If true, kill the scheduler and all running jobs if any task fails. |
+| cache-lock                   | true                   | If true, block the submission of cacheable tasks if a matching one is already running. |
 | envs                         | {}                     | Environment variables that will be available to every task |
 | detach                       | Check out the [Detaching Commands](advanced/detaching.md) section for details | Sbatch options for detached jobs. |
-| extra_dagdirs                | []                     | Import strings in the form 'path.to.module' of extra packages pipelines will be searched into. Useful to import pipelines from dependencies. |
+| extra-dagdirs                | []                     | Import strings in the form 'path.to.module' of extra packages pipelines will be searched into. Useful to import pipelines from dependencies. |
 
 In the `pyproject.toml` file you can also set a number of Sbatch options that will override those set in scripts or inside pipelines:
 

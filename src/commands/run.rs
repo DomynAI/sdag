@@ -10,6 +10,7 @@ use crate::store::workdirs::{self, DirPaths};
 use std::path::PathBuf;
 use std::time::Duration;
 
+#[allow(clippy::too_many_arguments)]
 pub fn run(
     pipeline_path: &str,
     max_concurrency: usize,
@@ -18,6 +19,7 @@ pub fn run(
     max_concurrent_runs: usize,
     log_level: &str,
     fail_fast: bool,
+    cache_lock: bool,
 ) {
     let pipeline_path = PathBuf::from(pipeline_path);
     let dag = state::read_dag(&pipeline_path).expect("Failed to read DAG");
@@ -46,6 +48,7 @@ pub fn run(
         sleep_time: Duration::from_secs(time_between_polls),
         log_level: log_level.to_string(),
         fail_fast,
+        cache_lock,
     };
 
     dag_setup::add_children(&mut nodes);
@@ -58,6 +61,7 @@ pub fn run(
     scheduler::scheduling_loop(&nodes, &mut ctx, &cfg, &meta);
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn restart_run(
     name: &str,
     hash: &str,
@@ -66,6 +70,7 @@ pub fn restart_run(
     retry: bool,
     log_level: &str,
     fail_fast: bool,
+    cache_lock: bool,
 ) {
     let homedir = settings::find_homedir().expect("Failed to find the home directory");
     let Some(path) = workdirs::find_pipeline_folder(&homedir, name, hash) else {
@@ -76,19 +81,22 @@ pub fn restart_run(
     let ckpt = state::read_chekpoint(&path).expect("Failed to read checkpoint");
     let meta = ckpt.meta.into_owned();
     let nodes = ckpt.nodes.into_owned();
-    let node_ctxs = ckpt.node_ctxs.into_owned();
-    let mut ctx = Ctx::from_checkpoint(&nodes, node_ctxs);
     let mut cfg = ckpt.cfg.into_owned();
-
-    if retry {
-        log::info!("Retry enabled by user");
-        ctx.reset_all_statuses();
-    }
+    let node_ctxs = ckpt.node_ctxs.into_owned();
+    let mut ctx = Ctx::from_checkpoint(node_ctxs);
 
     cfg.max_concurrency = max_concurrency;
     cfg.sleep_time = Duration::from_secs(time_between_polls);
     cfg.log_level = log_level.to_string();
     cfg.fail_fast = fail_fast;
+    cfg.cache_lock = cache_lock;
+
+    ctx.mark_all_local_running_jobs_as_failed(&nodes, &cfg);
+    if retry {
+        log::info!("Retry enabled by user");
+        ctx.reset_all_statuses();
+    }
+    ctx.restore_running_cacheable(&nodes, &cfg);
 
     log::info!("Start checkpoint validation");
     let validator = CheckpointValidator { cfg: &cfg };

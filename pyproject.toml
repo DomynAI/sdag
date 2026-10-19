@@ -149,4 +149,4 @@ sdag-execute = "sdag.entrypoints:sdag_execute"
 [tool.sdag]
 dagdir = "./examples"
 log-level = "info"
-extra_dagdirs = ["sdag._extras"]
+extra-dagdirs = ["sdag._extras"]

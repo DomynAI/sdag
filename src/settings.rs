@@ -27,6 +27,7 @@ pub struct Cfg {
     pub sleep_time: Duration,
     pub log_level: String,
     pub fail_fast: bool,
+    pub cache_lock: bool,
 }
 
 /// Configure logging.

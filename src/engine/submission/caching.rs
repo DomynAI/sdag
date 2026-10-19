@@ -154,12 +154,20 @@ fn compare_input(task: &Task, input: &HashMap<String, Value>, path: &Path) -> bo
     };
 
     replace_cache_ignored_value(&mut cached_input, input, &task.cache_ignore);
-    if *input != cached_input {
+    if !inputs_match(input, cached_input, &task.cache_ignore) {
         log::info!("Cache {path_str} invalidated as input doesn't match the cached one.");
-        log::debug!("input:\n{input:?};\ncached input:\n{cached_input:?}");
         return false;
     }
     true
+}
+
+pub fn inputs_match(
+    input: &HashMap<String, Value>,
+    mut other: HashMap<String, Value>,
+    cache_ignore: &[String],
+) -> bool {
+    replace_cache_ignored_value(&mut other, input, cache_ignore);
+    *input == other
 }
 
 fn check_artifacts_exist(uid: usize, artifacts: &[Artifact]) -> bool {

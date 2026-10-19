@@ -1,12 +1,14 @@
 // SPDX-FileCopyrightText: 2026 Domyn
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::engine::submission;
+use crate::engine::submission::{self, cache_lock};
 use crate::model::nodes::Node;
 use crate::model::status::{Failed, JobType, Status};
+use crate::settings::Cfg;
 use log;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
+use std::path::PathBuf;
 use std::process::Child;
 
 #[derive(Debug, Clone)]
@@ -46,7 +48,7 @@ pub struct Ctx {
     pub jobs: VecDeque<Job>,
     pub local_jobs: Vec<(usize, Child)>,
     pub slurm_jobs: Vec<(usize, String)>,
-    pub running_cacheable: HashSet<String>,
+    pub running_cacheable: HashMap<PathBuf, Vec<usize>>,
     pub must_checkpoint: bool,
     pub nodes: Vec<NodeCtx>,
 }
@@ -72,7 +74,7 @@ impl Ctx {
         Ok(Self {
             updated: VecDeque::new(),
             jobs: VecDeque::new(),
-            running_cacheable: HashSet::new(),
+            running_cacheable: HashMap::new(),
             local_jobs: Vec::new(),
             slurm_jobs: Vec::new(),
             must_checkpoint: true,
@@ -80,17 +82,16 @@ impl Ctx {
         })
     }
 
-    pub fn from_checkpoint(nodes: &[Node], node_ctxs: Vec<NodeCtx>) -> Self {
+    pub fn from_checkpoint(node_ctxs: Vec<NodeCtx>) -> Self {
         let mut ctx = Self {
             nodes: node_ctxs,
             updated: VecDeque::new(),
             jobs: VecDeque::new(),
-            running_cacheable: HashSet::new(),
+            running_cacheable: HashMap::new(),
             local_jobs: Vec::new(),
             slurm_jobs: Vec::new(),
             must_checkpoint: false,
         };
-        ctx.mark_all_local_running_jobs_as_failed(nodes);
         ctx.collect_running_slurm_jobs();
         ctx
     }
@@ -128,14 +129,25 @@ impl Ctx {
         self.must_checkpoint = true
     }
 
-    fn mark_all_local_running_jobs_as_failed(&mut self, nodes: &[Node]) {
+    pub fn restore_running_cacheable(&mut self, nodes: &[Node], cfg: &Cfg) {
+        for node in nodes {
+            if let Node::Task(task) = node
+                && task.cache.is_enabled()
+                && self.nodes[task.uid].status.is_running()
+            {
+                cache_lock::lock_cacheable_task(task, self, cfg);
+            }
+        }
+    }
+
+    pub fn mark_all_local_running_jobs_as_failed(&mut self, nodes: &[Node], cfg: &Cfg) {
         for node in nodes {
             if let Node::Task(task) = node
                 && let Status::Running(JobType::Local(pid)) = self.nodes[task.uid].status
             {
                 log::warn!("Marking running local task {} as failed.", task.uid);
                 let failure = Failed::Job(JobType::Local(pid));
-                submission::handle_retries(task, self, failure);
+                submission::handle_retries(task, self, failure, cfg);
             }
         }
     }
@@ -156,6 +168,8 @@ impl Ctx {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use super::*;
     use crate::model::nodes::Task;
     use crate::model::schemas::Cmd;
@@ -196,9 +210,6 @@ mod tests {
 
     #[test]
     fn test_checkpoint_load() {
-        let tasks = get_tasks();
-        let nodes = get_nodes(tasks);
-
         let mut node_ctxs = vec![NodeCtx::default(); 3];
         node_ctxs[0].try_num = 1;
         node_ctxs[1].try_num = 1;
@@ -207,8 +218,28 @@ mod tests {
         node_ctxs[1].status = Status::Running(JobType::Slurm("123".into()));
         node_ctxs[2].status = Status::Pending(JobType::Slurm("456".into()));
 
-        let ctx = Ctx::from_checkpoint(&nodes, node_ctxs);
-        assert!(matches!(ctx.nodes[0].status, Status::Failed(_)));
+        let ctx = Ctx::from_checkpoint(node_ctxs);
         assert_eq!(ctx.slurm_jobs.len(), 2);
+    }
+
+    #[test]
+    fn test_mark_all_local_running_jobs_as_failed() {
+        let tasks = get_tasks();
+        let nodes = get_nodes(tasks);
+        let cfg = Cfg::default();
+
+        let mut node_ctxs = vec![NodeCtx::default(); 3];
+        node_ctxs[0].try_num = 1;
+        node_ctxs[1].try_num = 1;
+        node_ctxs[2].try_num = 1;
+        node_ctxs[0].status = Status::Running(JobType::Local(123));
+        node_ctxs[1].status = Status::Running(JobType::Slurm("123".into()));
+        node_ctxs[2].status = Status::Running(JobType::Local(456));
+
+        let mut ctx = Ctx::from_checkpoint(node_ctxs);
+        ctx.mark_all_local_running_jobs_as_failed(&nodes, &cfg);
+        assert_matches!(ctx.nodes[0].status, Status::Failed(_));
+        assert_matches!(ctx.nodes[1].status, Status::Running(_));
+        assert_matches!(ctx.nodes[2].status, Status::Failed(_));
     }
 }
