@@ -22,7 +22,6 @@ def non_cached_task():
     print("I run every time")
 ```
 
-
 When this pipeline is executed the first time via:
 
 ```sh
@@ -118,7 +117,7 @@ sdag prune create_file -p dag_with_artifact
 
 to delete the cache of the `create_file` task. Check out the [CLI](../cli.md) section for details.
 
-## Caching options
+## Caching options and locking
 
 Several caching options are available:
 
@@ -130,6 +129,50 @@ Several caching options are available:
 | `"task"`     | Same as `"io"` but the task function code must also match.                                                    |
 | `"project"`  | Same as `"io"` but the code of all internal modules imported during the pipeline compilation must also match. |
 
+
+By default a cached task lock is enabled. Consider the following pipeline:
+
+```py title="cache_lock.py"
+from sdag import pipeline, script
+
+
+@pipeline
+def cache_lock():
+    """Simple example to test cache locking.
+
+    This pipeline shows how cache locking works.
+    Only two tasks will run here, one with a=1
+    and the other a=2. The other ones will wait
+    and then get cached.
+    """
+    lock_cache(a=1)
+    lock_cache(a=1)
+    lock_cache(a=1)
+    lock_cache(a=1)
+    lock_cache(a=2)
+    lock_cache(a=2)
+
+
+@cache_lock.task(script, cache="io", cache_size=2)
+def lock_cache(a: int) -> None:
+    """Wait without doing much.
+
+    Args:
+        a (int): input value.
+    """
+    import time
+
+    print(a)
+    time.sleep(7)
+```
+
+If you execute it through the command:
+
+```sh
+sdag run cache --local
+```
+
+You will see that only two tasks will be actually executed, the other ones will wait and then get cached after the successful completion of the running tasks. You can turn off this feature by disabling the `cache-lock` flag in the `pyproject.toml` [configurations](../configurations.md).
 
 !!! info
     Check out the [Slurm](./hello_world_slurm.md) section to run this example on Slurm.
