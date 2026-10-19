@@ -9,6 +9,7 @@ def run(
     slurm_grace_period: int,
     max_concurrent_runs: int,
     fail_fast: bool,
+    cache_lock: bool,
 ) -> None: ...
 def restart_run(
     pipeline_name: str,
@@ -18,6 +19,7 @@ def restart_run(
     log_level: str,
     retry: bool,
     fail_fast: bool,
+    cache_lock: bool,
 ) -> None: ...
 def kill_run(
     pipeline_name: str, pipeline_hash: str, log_level: str
