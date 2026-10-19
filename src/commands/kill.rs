@@ -102,7 +102,7 @@ fn kill_slurm_jobs(ctx: &mut Ctx) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use crate::engine::context::NodeCtx;
-    use std::collections::{HashSet, VecDeque};
+    use std::collections::VecDeque;
     use std::os::unix::process::CommandExt;
 
     use super::*;
@@ -124,7 +124,7 @@ mod tests {
             jobs: VecDeque::new(),
             local_jobs: vec![(0, child)],
             slurm_jobs: Vec::new(),
-            running_cacheable: HashSet::new(),
+            running_cacheable: HashMap::new(),
             must_checkpoint: false,
         };
 

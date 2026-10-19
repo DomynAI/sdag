@@ -3,7 +3,7 @@
 
 use crate::engine::context::{Ctx, JobArray, NodeCtx};
 use crate::engine::polling::Poller;
-use crate::engine::submission::{self, caching, inline};
+use crate::engine::submission::{self, cache_lock, caching, inline};
 use crate::model::nodes::{Node, Task};
 use crate::model::responses::{SacctResponse, SqueueJob, SqueueResponse};
 use crate::model::schemas::ExecMode;
@@ -90,7 +90,7 @@ impl<'a> SlurmPoller<'a> {
             }
             Status::Failed(failure) => {
                 log::error!("Task - '{}' failed", task.uid);
-                submission::handle_retries(task, ctx, failure.clone())
+                submission::handle_retries(task, ctx, failure.clone(), self.cfg);
             }
             Status::Completed(Completed::Job(job_type)) => {
                 let job_type = job_type.clone();
@@ -112,8 +112,11 @@ impl<'a> SlurmPoller<'a> {
 
     fn handle_completed_task(&self, task: &Task, status: Status, job_type: JobType, ctx: &mut Ctx) {
         ctx.set_status(task.uid, status);
-        ctx.running_cacheable.remove(&task.name);
         ctx.updated.push_back(task.uid);
+        if task.cache.is_enabled() {
+            cache_lock::unlock_cacheable_task(task, ctx, self.cfg);
+        }
+
         if let Err(e) = self.maybe_save_output(task) {
             log::error!("Task {}: Failed to save output - {e}", task.uid);
             ctx.set_status_deep(task.uid, Status::Failed(Failed::Job(job_type)));

@@ -22,7 +22,9 @@ mod core {
         slurm_grace_period: "int",
         max_concurrent_runs: "int",
         fail_fast: "bool",
+        cache_lock: "bool",
     ) -> "None")]
+    #[allow(clippy::too_many_arguments)]
     pub fn run(
         pipeline_path: &str,
         max_concurrency: usize,
@@ -31,6 +33,7 @@ mod core {
         slurm_grace_period: usize,
         max_concurrent_runs: usize,
         fail_fast: bool,
+        cache_lock: bool,
     ) {
         settings::configure_logging(log_level);
         commands::run(
@@ -41,6 +44,7 @@ mod core {
             max_concurrent_runs,
             log_level,
             fail_fast,
+            cache_lock,
         )
     }
 
@@ -53,7 +57,9 @@ mod core {
         log_level: "str",
         retry: "bool",
         fail_fast: "bool",
+        cache_lock: "bool",
     ) -> "None")]
+    #[allow(clippy::too_many_arguments)]
     pub fn restart_run(
         pipeline_name: &str,
         pipeline_hash: &str,
@@ -62,6 +68,7 @@ mod core {
         log_level: &str,
         retry: bool,
         fail_fast: bool,
+        cache_lock: bool,
     ) {
         settings::configure_logging(log_level);
         commands::restart_run(
@@ -72,6 +79,7 @@ mod core {
             retry,
             log_level,
             fail_fast,
+            cache_lock,
         );
     }
 

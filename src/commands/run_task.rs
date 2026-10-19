@@ -46,6 +46,7 @@ pub fn run_task(
         log_level: log_level.to_string(),
         max_concurrency: 1,
         fail_fast: false,
+        cache_lock: false,
     };
 
     let nodes = vec![Node::Task(task.clone())];

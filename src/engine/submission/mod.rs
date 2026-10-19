@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Domyn
 // SPDX-License-Identifier: Apache-2.0
 
+pub mod cache_lock;
 pub mod caching;
 pub mod inline;
 pub mod jobs;
@@ -9,11 +10,15 @@ use crate::model::nodes::{Node, Task};
 use crate::model::schemas::{Cmd, DAGMeta};
 use crate::model::status::{Completed, Failed, JobType, Status};
 use crate::settings::Cfg;
+use crate::store::workdirs;
 use std::error::Error;
 
 use std::collections::VecDeque;
 
-pub fn handle_retries(task: &Task, ctx: &mut Ctx, failure: Failed) {
+pub fn handle_retries(task: &Task, ctx: &mut Ctx, failure: Failed, cfg: &Cfg) {
+    if task.cache.is_enabled() {
+        cache_lock::unlock_cacheable_task(task, ctx, cfg);
+    }
     let try_num = &ctx.nodes[task.uid].try_num;
     if *try_num > task.retries {
         log::error!(
@@ -23,16 +28,16 @@ pub fn handle_retries(task: &Task, ctx: &mut Ctx, failure: Failed) {
         );
         ctx.set_status(task.uid, Status::Failed(failure));
         ctx.updated.push_back(task.uid);
-    } else {
-        log::warn!(
-            "Task '{}' failed, scheduling retry '{}/{}'.",
-            task.uid,
-            try_num,
-            task.retries,
-        );
-        ctx.set_status_for_retry(task.uid);
-        ctx.jobs.push_back(Job::Task(task.uid));
+        return;
     }
+    log::warn!(
+        "Task '{}' failed, scheduling retry '{}/{}'.",
+        task.uid,
+        try_num,
+        task.retries,
+    );
+    ctx.set_status_for_retry(task.uid);
+    ctx.jobs.push_back(Job::Task(task.uid));
 }
 
 pub struct Submitter<'a> {
@@ -85,6 +90,16 @@ impl<'a> Submitter<'a> {
             return;
         }
 
+        if let Some(uid) = cache_lock::find_running_duplicate(task, ctx, self.cfg) {
+            log::info!(
+                "Holding back task '{}': waiting for matching task '{uid}'",
+                task.uid
+            );
+            self.held_jobs
+                .push_back(Job::ValidateCache(task.uid, false));
+            return;
+        }
+
         ctx.nodes[task.uid].try_num += 1;
         let res = match &task.cmd {
             Cmd::Sbatch => self.submit_slurm(task, ctx),
@@ -94,12 +109,14 @@ impl<'a> Submitter<'a> {
         if let Err(e) = res {
             log::error!("Task '{}': submission failed - {e}", task.uid);
             let failure = Failed::Generic;
-            handle_retries(task, ctx, failure);
+            handle_retries(task, ctx, failure, self.cfg);
         }
 
         if task.cache.is_enabled() && ctx.nodes[task.uid].status.is_running() {
             log::debug!("Task {} marked as running cacheable", task.uid);
-            ctx.running_cacheable.insert(task.name.to_string());
+            let cache_path = workdirs::get_task_cache_path(task, self.cfg);
+            let running = ctx.running_cacheable.entry(cache_path).or_default();
+            running.push(task.uid);
         }
     }
 
@@ -127,19 +144,9 @@ impl<'a> Submitter<'a> {
 
     fn handle_cache_validation(&mut self, task: &Task, ctx: &mut Ctx, already_checked: &bool) {
         log::info!("checking task {} cache", task.uid);
-        if task.cache.is_enabled() && ctx.running_cacheable.contains(&task.name) {
-            log::warn!(
-                "Holding back task '{}' with name '{}': Another \
-                cacheable task with the same name is already running",
-                task.uid,
-                task.name
-            );
-            self.held_jobs
-                .push_back(Job::ValidateCache(task.uid, false));
-            return;
-        }
         if !already_checked && caching::submit_validate_cache(task, self.cfg) {
             ctx.set_status(task.uid, Status::Completed(Completed::Cached));
+            ctx.updated.push_back(task.uid);
             return;
         }
         ctx.set_status(task.uid, Status::ReadyForSubmission);

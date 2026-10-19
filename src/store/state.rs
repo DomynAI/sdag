@@ -341,6 +341,7 @@ mod tests {
             sleep_time: Duration::from_secs(2),
             log_level: "info".into(),
             fail_fast: false,
+            cache_lock: false,
         };
 
         let meta = DAGMeta {
