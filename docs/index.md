@@ -1,3 +1,8 @@
+<p align="center">
+  <img src="assets/sdag-logo-black.svg#only-light" alt="sdag" style="height: clamp(60px, 8vw, 120px)">
+  <img src="assets/sdag-logo-white.svg#only-dark" alt="sdag" style="height: clamp(60px, 8vw, 120px)">
+</p>
+
 # Overview
 
 Welcome to the sdag documentation! sdag is a Python library for defining workflows that can run locally or across HPC clusters. It offers features like dynamic branching, caching, failure recovery, artifact tracking, and more.
