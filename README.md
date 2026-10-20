@@ -1,7 +1,7 @@
 <div align="center">
 
-<img src="assets/sdag-logo-primary.svg#only-light" alt="sdag" style="height: clamp(60px, 8vw, 120px)">
-<img src="assets/sdag-logo-light.svg#only-dark" alt="sdag" style="height: clamp(60px, 8vw, 120px)">
+<img src="docs/assets/sdag-logo-primary.svg#only-light" alt="sdag" style="height: clamp(60px, 8vw, 120px)">
+<img src="docs/assets/sdag-logo-white.svg#only-dark" alt="sdag" style="height: clamp(60px, 8vw, 120px)">
 
 DAGs for Slurm.
 
