@@ -1,10 +1,7 @@
 <div align="center">
 
-<picture>
-  <source srcset="docs/assets/sdag-logo-white.svg" media="(prefers-color-scheme: dark)">
-  <source srcset="docs/assets/sdag-logo-black.svg" media="(prefers-color-scheme: light)">
-  <img src="docs/assets/sdag-logo-black.svg" alt="sdag" height="100">
-</picture>
+<img src="docs/assets/sdag-logo-primary.svg#gh-light-mode-only" alt="sdag" style="height: clamp(60px, 8vw, 120px)">
+<img src="docs/assets/sdag-logo-white.svg#gh-dark-mode-only" alt="sdag" style="height: clamp(60px, 8vw, 120px)">
 
 DAGs for Slurm.
 

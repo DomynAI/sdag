@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/sdag-logo-black.svg#only-light" alt="sdag" style="height: clamp(60px, 8vw, 120px)">
+  <img src="assets/sdag-logo-primary.svg#only-light" alt="sdag" style="height: clamp(60px, 8vw, 120px)">
   <img src="assets/sdag-logo-white.svg#only-dark" alt="sdag" style="height: clamp(60px, 8vw, 120px)">
 </p>
 
