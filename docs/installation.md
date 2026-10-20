@@ -4,23 +4,23 @@ sdag is not available on pypi yet (it's coming soon!).
 
 === "`uv`"
 
-    To install sdag from [GitHub](https://github.com/igeniusai/sdag):
+    To install sdag from [GitHub](https://github.com/DomynAI/sdag):
 
     ```sh
-    uv add "sdag @ git+https://github.com/igeniusai/sdag"
+    uv add "sdag @ git+https://github.com/DomynAI/sdag"
     ```
 
     It is also possible to install it as a tool to gain global access to it:
 
     ```sh
-    uv tool install "sdag @ git+https://github.com/igeniusai/sdag"
+    uv tool install "sdag @ git+https://github.com/DomynAI/sdag"
     ```
 === "`pip`"
 
     To install sdag with pip, first clone the GitHub repository:
 
     ```sh
-    git clone https://github.com/igeniusai/sdag.git
+    git clone https://github.com/DomynAI/sdag.git
     ```
 
     and then install sdag:

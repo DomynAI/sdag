@@ -30,5 +30,5 @@ def default_task(): ...
 As you can see, it is possible to:
 
 - Modify properties like name, script, and caching behavior.
-- Define environment variables that will be automatically set by the scheduler so you can access them during the task execution.
+- Define environment variables that are automatically set by the scheduler so you can access them during the task execution.
 - Override Slurm configurations set in the execution script. These are ignored if the task runs as a local bash process. When compared with those in `pyproject.toml`, hardcoded Slurm options have higher priority.

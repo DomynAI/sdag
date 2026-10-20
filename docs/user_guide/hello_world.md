@@ -16,13 +16,13 @@ def say_hello(name: str):
     print(f"hello from {name}")
 ```
 
-There are two main objects in sdag, **pipelines** and **tasks**. Pipelines (marked with the `@pipeline` decorator) are used to represent the structure of the graph that will be executed. Tasks (marked with `@task` or `<pipeline-name>@task` decorators) are jobs scheduled depending on the current state of the graph.  The `script` argument of the task decorator contains the script that will be fired by the scheduler. This pipeline can be compiled with:
+There are two main objects in sdag, **pipelines** and **tasks**. Pipelines (marked with the `@pipeline` decorator) are used to represent the structure of the graph that will be executed. Tasks (marked with `@task` or `<pipeline-name>@task` decorators) are jobs scheduled depending on the current state of the graph.  The `script` argument of the task decorator contains the script fired by the scheduler. This pipeline can be compiled with:
 
 ```sh
 sdag compile hello:hello_world --local
 ```
 
-Where `hello:hello_world` is the pipeline import string in the form `path.to.module:function`. The previous command generates a `hello_world.json` file, which is saved in a `./compiled-pipelines` folder created by sdag. In many cases, you won't have to specify the full import string as sdag will be able to discover pipelines simply by their name:
+Where `hello:hello_world` is the pipeline import string in the form `path.to.module:function`. The previous command generates a `hello_world.json` file, which is saved in a `./compiled-pipelines` folder created by sdag. In many cases, you won't have to specify the full import string as sdag is able to discover pipelines simply by their name:
 
 ```sh
 sdag compile hello_world --local

@@ -9,9 +9,9 @@
 DAGs for Slurm.
 
 [![License - Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue)](LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-latest-blue)](https://igeniusai.github.io/sdag/)
-[![CI](https://github.com/igeniusai/sdag/actions/workflows/ci.yaml/badge.svg)](https://github.com/igeniusai/sdag/actions/workflows/ci.yaml)
-[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14%20%7C%203.15-brightgreen)](https://github.com/igeniusai/sdag/blob/main/pyproject.toml)
+[![Documentation](https://img.shields.io/badge/docs-latest-blue)](https://DomynAI.github.io/sdag/)
+[![CI](https://github.com/DomynAI/sdag/actions/workflows/ci.yaml/badge.svg)](https://github.com/DomynAI/sdag/actions/workflows/ci.yaml)
+[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14%20%7C%203.15-brightgreen)](https://github.com/DomynAI/sdag/blob/main/pyproject.toml)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://github.com/microsoft/pyright)
 
@@ -35,19 +35,19 @@ sdag tries to fill this gap by providing a typed, code-first API. Its design loo
 sdag is not available on pypi yet (it's coming soon!). If you manage dependencies with [uv](https://docs.astral.sh/uv/), you can directly install sdag from GitHub:
 
 ```sh
-uv add "sdag @ git+https://github.com/igeniusai/sdag"
+uv add "sdag @ git+https://github.com/DomynAI/sdag"
 ```
 
 You can also install sdag as a tool to gain global access to it:
 
 ```sh
-uv tool install "sdag @ git+https://github.com/igeniusai/sdag"
+uv tool install "sdag @ git+https://github.com/DomynAI/sdag"
 ```
 
 To install sdag with pip, first clone the GitHub repository:
 
 ```sh
-git clone https://github.com/igeniusai/sdag.git
+git clone https://github.com/DomynAI/sdag.git
 ```
 
 and then install sdag:
@@ -86,7 +86,7 @@ To run the `hello_world` pipeline locally, execute:
 sdag run hello_world --local
 ```
 
-Check out the official [documentation](https://igeniusai.github.io/sdag/) for a detailed description of the features offered by sdag.
+Check out the official [documentation](https://DomynAI.github.io/sdag/) for a detailed description of the features offered by sdag.
 
 ## Building from source and running tests
 
@@ -108,7 +108,7 @@ to activate it. Execute:
 pytest
 ```
 
-to run the the quick Python test suite and:
+to run the quick Python test suite and:
 
 ```sh
 pytest --runslow

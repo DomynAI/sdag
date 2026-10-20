@@ -39,7 +39,7 @@ which should print something like:
 └─────────┘        └─────────┘        └─────────┘
 ```
 
-As these tasks do not depend on each other, they will be scheduled at the same time. You can confirm this by running the pipeline:
+As these tasks do not depend on each other, they are scheduled at the same time. You can confirm this by running the pipeline:
 
 ```sh
 sdag run many_tasks --local

@@ -2,7 +2,7 @@
 
 ## External tasks
 
-Many times, tasks are just regular Python functions wrapped by sdag. However, you might also want to run Bash scripts, executables, or perhaps a piece of code unrelated to the sdag project. Tasks can be marked as external to inform sdag they do not wrap a Python function. Copy the following pipeline into a new module in the main project directory:
+Tasks are often just regular Python functions wrapped by sdag. However, you might also want to run Bash scripts, executables, or perhaps a piece of code unrelated to the sdag project. Tasks can be marked as external to inform sdag they do not wrap a Python function. Copy the following pipeline into a new module in the main project directory:
 
 ```py title="external_local_tasks.py"
 from sdag import Script, pipeline
@@ -28,7 +28,7 @@ sdag run external_dag --local
 
 ## Local tasks
 
-Differently from other libraries, in sdag you don't specify a runner for the whole pipeline. Local and Slurm tasks can be freely mixed in the same workflow. This choice has been made to avoid spinning Slurm jobs that may stay in queue forever just to perform small operations that could be easily executed locally. Add a new pipeline to `external_local_tasks.py`:
+Unlike other libraries, in sdag you don't specify a runner for the whole pipeline. Local and Slurm tasks can be freely mixed in the same workflow. This choice has been made to avoid spinning Slurm jobs that may stay in queue forever just to perform small operations that could be easily executed locally. Add a new pipeline to `external_local_tasks.py`:
 
 ```py title="external_local_tasks.py"
 from sdag import script
@@ -44,7 +44,7 @@ def local_task():
     print("I run locally!")
 ```
 
-`cmd="bash"` is used to specify that the task must run as a nonblocking, local process instead of a Slurm job. This pipeline can now executed with:
+`cmd="bash"` is used to specify that the task must run as a nonblocking, local process instead of a Slurm job. This pipeline can now be executed with:
 
 ```sh
 sdag run local_dag
