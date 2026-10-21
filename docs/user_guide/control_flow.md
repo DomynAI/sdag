@@ -72,7 +72,7 @@ def dag():
     final_task(t)
 ```
 
-Unfortunately, it's not! `t` in the example will always refer to `option2`. The `oneof` node is inspired by Kubeflow and it can be used to reference tasks running on separate branches. Add the following snippet to the same `control_flow.py` module:
+Unfortunately, it doesn't! `t` in the example will always refer to `option2`. The `oneof` node is inspired by Kubeflow and it can be used to reference tasks running on separate branches. Add the following snippet to the same `control_flow.py` module:
 
 ```py title="control_flow.py"
 from sdag import oneof

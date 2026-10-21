@@ -32,7 +32,7 @@ In the `pyproject.toml` file you can also set a number of Sbatch options that wi
 | account          | Account name |
 | partition        | Partition |
 | qos              | Quality of Service |
-| ntasks-per-node  | Number of tasks per node |
+| tasks-per-node  | Number of tasks per node |
 | cpus-per-task    | Number of CPUs per task |
 | gpus-per-node    | Number of GPUs per node |
 | time             | Wall time |
