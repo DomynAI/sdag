@@ -52,6 +52,7 @@ pub fn run(
     };
 
     dag_setup::add_children(&mut nodes);
+    dag_setup::compute_positions(&mut nodes).expect("Failed to compute positions");
     workdirs::create_dir_structure(&cfg, &nodes).expect("Failed to create dagdir");
     if let Err(e) = state::copy_dag_in_dagdir(&pipeline_path, &cfg.dagdir) {
         log::error!("Failed to copy DAG into the DAG directory - {e}");

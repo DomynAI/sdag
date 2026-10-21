@@ -161,7 +161,7 @@ class ArtifactContainer:
         node (Node): Parent node.
     """
 
-    def __init__(self, key: str, path: Path, node: "TaskNode"):
+    def __init__(self, key: str, path: Path, node: "TaskNode | OneOfNode"):
         """Initialize the artifact container.
 
         Args:
@@ -536,6 +536,40 @@ class OneOfNode(BaseNode):
         """
         parent = Parent(uid=parent_uid, kind=LogicalParent())
         self.parents.append(parent)
+
+    def resolve_artifacts(self, *nodes: "TaskNode | Self | EndNode") -> None:
+        """Register an artifact.
+
+        Args:
+            *nodes: TaskNode | Self: OneOf parent nodes.
+        """
+        if not nodes:
+            return
+
+        if not all(isinstance(node, (TaskNode, OneOfNode)) for node in nodes):
+            return
+
+        keys = set(nodes[0].artifacts)
+        for node in nodes[1:]:
+            keys = keys.intersection(set(node.artifacts))
+
+        for key in keys:
+            path = nodes[0].artifacts[key].path  # type: ignore
+            for node in nodes[1:]:
+                if node.artifacts[key].path != path:  # type: ignore
+                    break
+            else:
+                self._register_artifact(key, path)
+
+    def _register_artifact(self, key: str, path: Path) -> None:
+        """Register an artifact.
+
+        Args:
+            key (str): Artifact key.
+            path (Path): Artifact path.
+        """
+        self.output_artifacts.append(ArtifactEdge(name=key, path=path))
+        self._artifact_containers[key] = ArtifactContainer(key, path, self)
 
 
 class EndNode(BaseNode):

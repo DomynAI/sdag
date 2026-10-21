@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::engine::context::NodeCtx;
-use crate::model::schemas::Parent;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -167,20 +166,10 @@ pub fn all_parents_failed_or_skipped(parent_statuses: &[&Status]) -> bool {
         .all(|x| matches!(**x, Status::Failed(_)) | matches!(**x, Status::Skipped))
 }
 
-pub fn find_completed_parent(parents: &[Parent], nodes: &[NodeCtx]) -> Option<usize> {
-    for parent in parents {
-        if matches!(nodes[parent.uid].status, Status::Completed(_)) {
-            return Some(parent.uid);
-        }
-    }
-    None
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::engine::context::JobArray;
-    use crate::model::schemas::ParentKind;
 
     #[test]
     fn test_all_completed() {
@@ -216,54 +205,6 @@ mod tests {
         assert!(!all_parents_completed(&statuses));
         assert!(some_parents_failed_or_skipped(&statuses));
         assert!(all_parents_failed_or_skipped(&statuses));
-    }
-
-    #[test]
-    fn test_find_completed_parent_no_parents() {
-        let parents = vec![];
-        let statuses = vec![];
-        assert!(find_completed_parent(&parents, &statuses).is_none())
-    }
-
-    #[test]
-    fn test_find_completed_parent() {
-        let parents = vec![
-            Parent {
-                uid: 0,
-                kind: ParentKind::Logical,
-            },
-            Parent {
-                uid: 2,
-                kind: ParentKind::Logical,
-            },
-        ];
-
-        let mut node_ctxs = vec![NodeCtx::default(); 3];
-        node_ctxs[0].status = Status::Completed(Completed::Cached);
-        node_ctxs[1].status = Status::Skipped;
-        node_ctxs[2].status = Status::Failed(Failed::Generic);
-        assert_eq!(find_completed_parent(&parents, &node_ctxs).unwrap(), 0);
-    }
-
-    #[test]
-    fn test_completed_parent_not_found() {
-        let parents = vec![
-            Parent {
-                uid: 1,
-                kind: ParentKind::Logical,
-            },
-            Parent {
-                uid: 2,
-                kind: ParentKind::Logical,
-            },
-        ];
-
-        let mut node_ctxs = vec![NodeCtx::default(); 3];
-        node_ctxs[0].status = Status::Completed(Completed::Cached);
-        node_ctxs[1].status = Status::Skipped;
-        node_ctxs[2].status = Status::Failed(Failed::Generic);
-
-        assert!(find_completed_parent(&parents, &node_ctxs).is_none());
     }
 
     #[test]

@@ -96,12 +96,17 @@ def validate_kwargs(sig: inspect.Signature, kwargs: dict[str, Any]) -> None:
             raise KwargNotFoundError(key)
 
 
-def oneof(*args: NodeUnion, name: str = "one_of") -> OneOfNode:
+def oneof(
+    *args: TaskNode | OneOfNode | EndNode, name: str = "one_of"
+) -> OneOfNode:
     """OneOf node.
 
     It has two major use cases:
     1. Selecting nodes from mutually excluded branches.
     2. Selecting The first successfully completed parent.
+
+    Task and OneOf artifacts are only propagated if both
+    names and paths are equal.
 
     Returns:
         Node[OneOfNode]: OneOf node.
@@ -110,7 +115,7 @@ def oneof(*args: NodeUnion, name: str = "one_of") -> OneOfNode:
     compiler.register(node)
     for parent in args:
         node.add_logical_edge(parent.uid)
-
+    node.resolve_artifacts(*args)
     return node
 
 

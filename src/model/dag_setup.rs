@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Domyn
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::model::nodes::{Node, Parents};
+use crate::model::nodes::{Children, Node, Parents};
 use crate::model::schemas::Cmd;
+use std::collections::VecDeque;
 
 pub fn find_root_node(nodes: &[Node]) -> Option<usize> {
     for node in nodes {
@@ -30,6 +31,33 @@ pub fn add_children(nodes: &mut [Node]) {
         children.dedup();
         nodes[uid].set_children(children);
     }
+}
+
+pub fn compute_positions(nodes: &mut [Node]) -> Result<(), String> {
+    let mut indegree = vec![0; nodes.len()];
+    for node in nodes.iter() {
+        for child in node.children() {
+            indegree[*child] += 1;
+        }
+    }
+
+    let mut ready: VecDeque<usize> = (0..nodes.len()).filter(|&uid| indegree[uid] == 0).collect();
+    let mut next = 0;
+    while let Some(uid) = ready.pop_front() {
+        nodes[uid].set_position(next);
+        next += 1;
+        for child in nodes[uid].children() {
+            indegree[*child] -= 1;
+            if indegree[*child] == 0 {
+                ready.push_back(*child);
+            }
+        }
+    }
+
+    if next != nodes.len() {
+        return Err("The pipeline graph contains a cycle".to_string());
+    }
+    Ok(())
 }
 
 pub fn validate_dag(nodes: &[Node]) -> Result<(), String> {
@@ -66,6 +94,7 @@ mod tests {
             pipeline_name: "pipeline".into(),
             parents: Vec::new(),
             children: Vec::new(),
+            position: 0,
         };
         let task = Task {
             uid: 1,
@@ -85,6 +114,7 @@ mod tests {
             }],
             children: vec![],
             artifacts: vec![],
+            position: 0,
         };
 
         vec![Node::Root(root), Node::Task(task), Node::End(end)]

@@ -7,11 +7,12 @@ use crate::model::nodes::{Branch, Children, End, Node, OneOf, ProvideStatus, Roo
 use crate::model::schemas::Parent;
 use crate::model::status::{
     Completed, Failed, Status, all_parents_completed, all_parents_failed_or_skipped,
-    find_completed_parent, some_parents_failed_or_skipped,
+    some_parents_failed_or_skipped,
 };
 use crate::settings::Cfg;
 
-use std::collections::{HashSet, VecDeque};
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashSet};
 
 pub trait Visitor<T> {
     fn visit_root(&mut self, node: &Root, ctx: &mut Ctx) -> T;
@@ -19,13 +20,6 @@ pub trait Visitor<T> {
     fn visit_branch(&mut self, node: &Branch, ctx: &mut Ctx) -> T;
     fn visit_task(&mut self, node: &Task, ctx: &mut Ctx) -> T;
     fn visit_oneof(&mut self, node: &OneOf, ctx: &mut Ctx) -> T;
-    fn propagate(&self, node: &Node, queue: &mut VecDeque<usize>, visited: &HashSet<usize>) {
-        for child_uid in node.children() {
-            if !visited.contains(child_uid) {
-                queue.push_back(*child_uid);
-            }
-        }
-    }
 }
 
 pub struct NodeVisitor<'a, 'b> {
@@ -82,7 +76,7 @@ impl<'a, 'b> Visitor<()> for NodeVisitor<'a, 'b> {
 
     fn visit_oneof(&mut self, node: &OneOf, ctx: &mut Ctx) {
         let parent_statuses = self.get_parent_statuses(&node.parents, &ctx.nodes);
-        if let Some(uid) = find_completed_parent(&node.parents, &ctx.nodes) {
+        if let Some(uid) = self.find_completed_parent(&node.parents, &ctx.nodes) {
             let status = match inline::submit_oneof(node, uid, self.cfg) {
                 Ok(_) => Status::Completed(Completed::OneOf(uid)),
                 Err(e) => {
@@ -98,9 +92,23 @@ impl<'a, 'b> Visitor<()> for NodeVisitor<'a, 'b> {
 }
 
 impl<'a, 'b> NodeVisitor<'a, 'b> {
+    pub fn propagate(
+        &self,
+        node: &Node,
+        queue: &mut BinaryHeap<Reverse<(usize, usize)>>,
+        visited: &HashSet<usize>,
+    ) {
+        for child_uid in node.children() {
+            if !visited.contains(child_uid) {
+                let position = self.nodes[*child_uid].get_position();
+                queue.push(Reverse((position, *child_uid)));
+            }
+        }
+    }
+
     pub fn visit(&mut self, ctx: &mut Ctx) {
         let mut visited = HashSet::new();
-        while let Some(uid) = ctx.updated.pop_front() {
+        while let Some(Reverse((_, uid))) = ctx.updated.pop() {
             if !visited.insert(uid) {
                 continue;
             }
@@ -131,6 +139,23 @@ impl<'a, 'b> NodeVisitor<'a, 'b> {
             })
             .map(|(node, status, kind)| node.provide_status(status, kind))
             .collect()
+    }
+
+    fn find_completed_parent(&self, parents: &[Parent], nodes: &[NodeCtx]) -> Option<usize> {
+        for parent in parents {
+            let status = &nodes[parent.uid].status;
+            let status_for_child = match &self.nodes[parent.uid] {
+                Node::Task(n) => n.provide_status(status, &parent.kind),
+                Node::OneOf(n) => n.provide_status(status, &parent.kind),
+                Node::End(n) => n.provide_status(status, &parent.kind),
+                Node::Root(_) | Node::Branch(_) => continue,
+            };
+
+            if status_for_child.is_completed() {
+                return Some(parent.uid);
+            }
+        }
+        None
     }
 
     fn visit_not_submitted_task(&self, task: &Task, ctx: &mut Ctx) {
@@ -193,6 +218,7 @@ mod tests {
             pipeline_name: "pipeline".into(),
             parents: vec![],
             children: vec![],
+            position: 0,
         }
     }
 
@@ -203,6 +229,7 @@ mod tests {
             parents: vec![],
             children: vec![],
             artifacts: vec![],
+            position: 0,
         }
     }
 
@@ -223,6 +250,7 @@ mod tests {
             }],
             children: vec![true_branch, false_branch],
             artifacts: vec![],
+            position: 0,
         }
     }
 
@@ -243,10 +271,12 @@ mod tests {
     fn get_oneof(uid: usize, parent1: usize, parent2: usize) -> OneOf {
         OneOf {
             uid,
+            name: "one_of".into(),
             pipeline_name: "pipeline".into(),
             parents: vec![get_parent(parent1), get_parent(parent2)],
             children: vec![],
             artifacts: vec![],
+            position: 0,
         }
     }
 
@@ -264,7 +294,7 @@ mod tests {
         let nodes = [Node::Root(root)];
 
         let mut ctx = get_ctx(&nodes);
-        ctx.updated.push_back(0);
+        ctx.updated.push(Reverse((0, 0)));
 
         let mut visitor = NodeVisitor {
             nodes: &nodes,
@@ -287,7 +317,7 @@ mod tests {
         let nodes = [Node::Root(root1), Node::Root(root2)];
 
         let mut ctx = get_ctx(&nodes);
-        ctx.updated.push_back(1);
+        ctx.updated.push(Reverse((0, 1)));
         ctx.nodes[0].status = Status::Failed(Failed::Generic);
 
         let mut visitor = NodeVisitor {
@@ -306,7 +336,7 @@ mod tests {
         let nodes = [Node::End(end)];
 
         let mut ctx = get_ctx(&nodes);
-        ctx.updated.push_back(0);
+        ctx.updated.push(Reverse((0, 0)));
 
         let mut visitor = NodeVisitor {
             nodes: &nodes,
@@ -329,7 +359,7 @@ mod tests {
         let nodes = [Node::Root(root), Node::End(end)];
 
         let mut ctx = get_ctx(&nodes);
-        ctx.updated.push_back(1);
+        ctx.updated.push(Reverse((0, 1)));
         ctx.nodes[0].status = Status::Failed(Failed::Generic);
 
         let mut visitor = NodeVisitor {
@@ -352,7 +382,7 @@ mod tests {
         let nodes = [Node::Root(root), Node::Root(root2), Node::End(end)];
 
         let mut ctx = get_ctx(&nodes);
-        ctx.updated.push_back(2);
+        ctx.updated.push(Reverse((0, 2)));
         ctx.nodes[0].status = Status::Failed(Failed::Generic);
         ctx.nodes[1].status = Status::Running(JobType::Slurm("123".into()));
 
@@ -376,7 +406,7 @@ mod tests {
         let nodes = [Node::Root(root), Node::Root(root2), Node::End(end)];
 
         let mut ctx = get_ctx(&nodes);
-        ctx.updated.push_back(2);
+        ctx.updated.push(Reverse((0, 2)));
         ctx.nodes[0].status = Status::Failed(Failed::Generic);
         ctx.nodes[1].status = Status::Completed(Completed::Generic);
 
@@ -415,7 +445,7 @@ mod tests {
         ];
 
         let mut ctx = get_ctx(&nodes);
-        ctx.updated.push_back(1);
+        ctx.updated.push(Reverse((0, 1)));
         ctx.nodes[0].status = Status::Completed(Completed::Generic);
 
         let output = TaskOutput {
@@ -460,7 +490,7 @@ mod tests {
         ];
 
         let mut ctx = get_ctx(&nodes);
-        ctx.updated.push_back(1);
+        ctx.updated.push(Reverse((0, 1)));
         ctx.nodes[0].status = Status::Failed(Failed::Generic);
         let mut visitor = NodeVisitor {
             nodes: &nodes,
@@ -492,7 +522,7 @@ mod tests {
         ];
 
         let mut ctx = get_ctx(&nodes);
-        ctx.updated.push_back(1);
+        ctx.updated.push(Reverse((0, 1)));
         ctx.nodes[0].status = Status::Completed(Completed::Generic);
         ctx.nodes[1].status = Status::Completed(Completed::Branch(true));
 
@@ -512,17 +542,17 @@ mod tests {
     #[test]
     fn test_visit_oneof_completed() {
         let cfg = get_cfg();
-        let root1 = get_root(0);
-        let root2 = get_root(1);
+        let end1 = get_end(0);
+        let end2 = get_end(1);
         let mut oneof = get_oneof(2, 0, 1);
 
         oneof.parents.push(get_parent(0));
         oneof.parents.push(get_parent(1));
 
-        let nodes = [Node::Root(root1), Node::Root(root2), Node::OneOf(oneof)];
+        let nodes = [Node::End(end1), Node::End(end2), Node::OneOf(oneof)];
 
         let mut ctx = get_ctx(&nodes);
-        ctx.updated.push_back(2);
+        ctx.updated.push(Reverse((0, 2)));
         ctx.nodes[0].status = Status::Completed(Completed::Generic);
         ctx.nodes[1].status = Status::Failed(Failed::Generic);
 
@@ -558,7 +588,7 @@ mod tests {
         let nodes = [Node::Root(root1), Node::Root(root2), Node::OneOf(oneof)];
 
         let mut ctx = get_ctx(&nodes);
-        ctx.updated.push_back(2);
+        ctx.updated.push(Reverse((0, 2)));
         ctx.nodes[0].status = Status::Skipped;
         ctx.nodes[1].status = Status::Failed(Failed::Generic);
 
@@ -583,7 +613,7 @@ mod tests {
         let nodes = [Node::Root(root1), Node::Root(root2), Node::Task(task)];
 
         let mut ctx = get_ctx(&nodes);
-        ctx.updated.push_back(2);
+        ctx.updated.push(Reverse((0, 2)));
         ctx.nodes[0].status = Status::Completed(Completed::Generic);
         ctx.nodes[1].status = Status::Failed(Failed::Generic);
 
@@ -610,7 +640,7 @@ mod tests {
         let nodes = [Node::Root(root1), Node::Root(root2), Node::Task(task)];
 
         let mut ctx = get_ctx(&nodes);
-        ctx.updated.push_back(2);
+        ctx.updated.push(Reverse((0, 2)));
         ctx.nodes[0].status = Status::Completed(Completed::Generic);
         ctx.nodes[1].status = Status::Completed(Completed::Cached);
 
@@ -639,7 +669,7 @@ mod tests {
 
         let nodes = [Node::Root(root1), Node::Root(root2), Node::Task(task)];
         let mut ctx = get_ctx(&nodes);
-        ctx.updated.push_back(2);
+        ctx.updated.push(Reverse((0, 2)));
         ctx.nodes[0].status = Status::Completed(Completed::Generic);
         ctx.nodes[1].status = Status::Completed(Completed::Cached);
 

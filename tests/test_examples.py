@@ -711,3 +711,34 @@ def test_inner_extra_dag():
 """
     print(final_table)
     assert final_table == expected.strip()
+
+
+@pytest.mark.slow
+@pytest.mark.usefixtures("set_home")
+def test_complex_oneof():
+    """Test the complex oneof/if pipeline."""
+    output = subprocess.check_output(
+        ["sdag", "run", "complex_oneof", "-t", "1", "--local"],
+        stderr=subprocess.STDOUT,
+        timeout=15,
+    )
+    final_table = _get_table(output)
+    expected = """
+┌───────────────┬────────┐
+│        status │ ntasks │
+├───────────────┼────────┤
+│     Completed │ 4      │
+├───────────────┼────────┤
+│       Skipped │ 4      │
+├───────────────┼────────┤
+│        Failed │ 0      │
+├───────────────┼────────┤
+│       Pending │ 0      │
+├───────────────┼────────┤
+│       Running │ 0      │
+├───────────────┼────────┤
+│ Not submitted │ 0      │
+└───────────────┴────────┘
+"""
+
+    assert final_table == expected.strip()

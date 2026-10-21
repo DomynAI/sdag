@@ -8,6 +8,7 @@ use crate::model::nodes::{Node, Task};
 use crate::model::schemas::ExecMode;
 use crate::model::status::{Completed, Failed, JobType, Status};
 use crate::settings::Cfg;
+use std::cmp::Reverse;
 use std::process::Child;
 
 pub struct LocalPoller<'a> {
@@ -55,7 +56,7 @@ impl<'a> LocalPoller<'a> {
     }
 
     fn handle_success(&self, task: &Task, pid: u32, ctx: &mut Ctx) {
-        ctx.updated.push_back(task.uid);
+        ctx.updated.push(Reverse((task.position, task.uid)));
         if task.cache.is_enabled() {
             cache_lock::unlock_cacheable_task(task, ctx, self.cfg);
         }
