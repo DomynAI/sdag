@@ -207,13 +207,16 @@ mod tests {
             pipeline_name: dag_name.to_string(),
             parents: vec![],
             children: vec![],
+            position: 0,
         };
         let oneof = OneOf {
             uid: 2,
+            name: "one_of".into(),
             pipeline_name: dag_name.to_string(),
             parents: vec![],
             children: vec![],
             artifacts: vec![],
+            position: 0,
         };
         let task = Task {
             uid: 1,

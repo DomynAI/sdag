@@ -359,6 +359,7 @@ mod tests {
             parents: vec![],
             children: vec![],
             artifacts: vec![],
+            position: 0,
         })];
         let ctx = Ctx::new(&nodes).unwrap();
         save_checkpoint(&cfg, &meta, &nodes, &ctx).unwrap();

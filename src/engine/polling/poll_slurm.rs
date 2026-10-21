@@ -10,6 +10,7 @@ use crate::model::schemas::ExecMode;
 use crate::model::status::{Completed, Failed, JobType, Status};
 use crate::settings::Cfg;
 use log;
+use std::cmp::Reverse;
 use std::collections::HashMap;
 use std::error::Error;
 use std::mem;
@@ -105,14 +106,14 @@ impl<'a> SlurmPoller<'a> {
             | Status::Completed(_) => {
                 log::warn!("Task '{}': status {}", task.uid, status);
                 ctx.set_status(task.uid, status);
-                ctx.updated.push_back(task.uid);
+                ctx.updated.push(Reverse((task.position, task.uid)));
             }
         }
     }
 
     fn handle_completed_task(&self, task: &Task, status: Status, job_type: JobType, ctx: &mut Ctx) {
         ctx.set_status(task.uid, status);
-        ctx.updated.push_back(task.uid);
+        ctx.updated.push(Reverse((task.position, task.uid)));
         if task.cache.is_enabled() {
             cache_lock::unlock_cacheable_task(task, ctx, self.cfg);
         }

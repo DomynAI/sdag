@@ -11,6 +11,7 @@ use crate::model::schemas::{Cmd, DAGMeta};
 use crate::model::status::{Completed, Failed, JobType, Status};
 use crate::settings::Cfg;
 use crate::store::workdirs;
+use std::cmp::Reverse;
 use std::error::Error;
 
 use std::collections::VecDeque;
@@ -27,7 +28,7 @@ pub fn handle_retries(task: &Task, ctx: &mut Ctx, failure: Failed, cfg: &Cfg) {
             task.retries
         );
         ctx.set_status(task.uid, Status::Failed(failure));
-        ctx.updated.push_back(task.uid);
+        ctx.updated.push(Reverse((task.position, task.uid)));
         return;
     }
     log::warn!(
@@ -146,7 +147,7 @@ impl<'a> Submitter<'a> {
         log::info!("checking task {} cache", task.uid);
         if !already_checked && caching::submit_validate_cache(task, self.cfg) {
             ctx.set_status(task.uid, Status::Completed(Completed::Cached));
-            ctx.updated.push_back(task.uid);
+            ctx.updated.push(Reverse((task.position, task.uid)));
             return;
         }
         ctx.set_status(task.uid, Status::ReadyForSubmission);

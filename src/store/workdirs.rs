@@ -229,6 +229,7 @@ mod tests {
             pipeline_name: "pipeline".into(),
             parents: Vec::new(),
             children: Vec::new(),
+            position: 0,
         };
         let task = get_task();
         vec![Node::Root(root), Node::Task(task)]

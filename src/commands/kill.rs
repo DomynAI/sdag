@@ -102,7 +102,7 @@ fn kill_slurm_jobs(ctx: &mut Ctx) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use crate::engine::context::NodeCtx;
-    use std::collections::VecDeque;
+    use std::collections::{BinaryHeap, VecDeque};
     use std::os::unix::process::CommandExt;
 
     use super::*;
@@ -119,7 +119,7 @@ mod tests {
             jobs: vec![],
         };
         let mut ctx = Ctx {
-            updated: VecDeque::new(),
+            updated: BinaryHeap::new(),
             nodes: vec![node_ctx],
             jobs: VecDeque::new(),
             local_jobs: vec![(0, child)],

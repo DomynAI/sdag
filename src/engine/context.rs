@@ -7,7 +7,8 @@ use crate::model::status::{Failed, JobType, Status};
 use crate::settings::Cfg;
 use log;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, VecDeque};
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashMap, VecDeque};
 use std::path::PathBuf;
 use std::process::Child;
 
@@ -44,7 +45,7 @@ impl NodeCtx {
 
 #[derive(Debug, Default)]
 pub struct Ctx {
-    pub updated: VecDeque<usize>,
+    pub updated: BinaryHeap<Reverse<(usize, usize)>>,
     pub jobs: VecDeque<Job>,
     pub local_jobs: Vec<(usize, Child)>,
     pub slurm_jobs: Vec<(usize, String)>,
@@ -72,7 +73,7 @@ impl Ctx {
         };
 
         Ok(Self {
-            updated: VecDeque::new(),
+            updated: BinaryHeap::new(),
             jobs: VecDeque::new(),
             running_cacheable: HashMap::new(),
             local_jobs: Vec::new(),
@@ -85,7 +86,7 @@ impl Ctx {
     pub fn from_checkpoint(node_ctxs: Vec<NodeCtx>) -> Self {
         let mut ctx = Self {
             nodes: node_ctxs,
-            updated: VecDeque::new(),
+            updated: BinaryHeap::new(),
             jobs: VecDeque::new(),
             running_cacheable: HashMap::new(),
             local_jobs: Vec::new(),

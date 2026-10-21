@@ -14,6 +14,7 @@ use crate::model::{dag_setup, status};
 use crate::settings::Cfg;
 use crate::store::state;
 use ctrlc;
+use std::cmp::Reverse;
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 use std::sync::{Mutex, Once};
@@ -49,7 +50,8 @@ pub fn scheduling_loop(nodes: &[Node], ctx: &mut Ctx, cfg: &Cfg, meta: &DAGMeta)
     let mut local_poller = LocalPoller { cfg };
 
     let root_uid = dag_setup::find_root_node(nodes).expect("Failed to find the root node");
-    ctx.updated.push_back(root_uid);
+    let root_position = nodes[root_uid].get_position();
+    ctx.updated.push(Reverse((root_position, root_uid)));
 
     let (tx, rx) = mpsc::channel();
     install_ctrlc_handler();

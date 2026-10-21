@@ -34,6 +34,26 @@ pub enum Node {
 }
 
 impl Node {
+    pub fn set_position(&mut self, position: usize) {
+        match self {
+            Self::Root(n) => n.position = position,
+            Self::End(n) => n.position = position,
+            Self::OneOf(n) => n.position = position,
+            Self::Task(n) => n.position = position,
+            Self::Branch(n) => n.position = position,
+        }
+    }
+
+    pub fn get_position(&self) -> usize {
+        match self {
+            Self::Root(n) => n.position,
+            Self::End(n) => n.position,
+            Self::OneOf(n) => n.position,
+            Self::Task(n) => n.position,
+            Self::Branch(n) => n.position,
+        }
+    }
+
     pub fn get_uid(&self) -> usize {
         match self {
             Self::Root(n) => n.uid,
@@ -144,6 +164,8 @@ pub struct Task {
     // Output artifacts.
     #[serde(default = "Vec::new")]
     pub children: Vec<usize>,
+    #[serde(default)]
+    pub position: usize,
 }
 
 impl Task {
@@ -186,6 +208,8 @@ pub struct Root {
     pub parents: Vec<Parent>,
     #[serde(default = "Vec::new")]
     pub children: Vec<usize>,
+    #[serde(default)]
+    pub position: usize,
 }
 
 impl Children for Root {
@@ -218,6 +242,8 @@ pub struct End {
     pub children: Vec<usize>,
     #[serde(default = "Vec::new")]
     pub artifacts: Vec<Artifact>,
+    #[serde(default)]
+    pub position: usize,
 }
 
 impl Children for End {
@@ -249,6 +275,8 @@ pub struct Branch {
     pub children: Vec<usize>,
     #[serde(default = "Vec::new")]
     pub artifacts: Vec<Artifact>,
+    #[serde(default)]
+    pub position: usize,
 }
 
 impl Children for Branch {
@@ -279,12 +307,17 @@ impl ProvideStatus for Branch {
 pub struct OneOf {
     // Node unique id.
     pub uid: usize,
+    // Node name
+    pub name: String,
+    // Pipeline name
     pub pipeline_name: String,
     /// Node parents.
     #[serde(default = "Vec::new")]
     pub parents: Vec<Parent>,
     #[serde(default = "Vec::new")]
     pub children: Vec<usize>,
+    #[serde(default)]
+    pub position: usize,
     #[serde(default = "Vec::new")]
     pub artifacts: Vec<Artifact>,
 }
@@ -320,6 +353,7 @@ mod tests {
             parents: vec![],
             children: vec![3, 4, 2],
             artifacts: vec![],
+            position: 0,
         };
 
         let true_kind = ParentKind::Branch { branch: true };
