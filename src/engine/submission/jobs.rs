@@ -280,8 +280,8 @@ fn override_sbatch(
     if let Some(gpus_per_node) = &slurm.gpus_per_node {
         cmd.arg(format!("--gpus-per-node={gpus_per_node}"));
     }
-    if let Some(ntasks_per_node) = &slurm.ntasks_per_node {
-        cmd.arg(format!("--ntasks-per-node={ntasks_per_node}"));
+    if let Some(tasks_per_node) = &slurm.tasks_per_node {
+        cmd.arg(format!("--tasks-per-node={tasks_per_node}"));
     }
     if let Some(account) = &slurm.account {
         cmd.arg(format!("--account={account}"));
