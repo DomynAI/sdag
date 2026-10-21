@@ -226,7 +226,7 @@ class SlurmOverride(BaseModel):
         partition: (str | None): Partition. Defaults to None.
         qos: (str | None) = qos. Defaults to None.
         gpus_per_node: (int | None): GPUs per node. Defaults to None.
-        ntasks_per_node: (int | None): Tasks per node.
+        tasks_per_node: (int | None): Tasks per node.
             Defaults to None.
         output: (str | None): stdout. Defaults to None.
         error: (str | None): stderr. Defaults to None.
@@ -243,8 +243,8 @@ class SlurmOverride(BaseModel):
     gpus_per_node: NonNegativeInt | None = Field(
         alias="gpus-per-node", default=None
     )
-    ntasks_per_node: NonNegativeInt | None = Field(
-        alias="ntasks-per-node", default=None
+    tasks_per_node: NonNegativeInt | None = Field(
+        alias="tasks-per-node", default=None
     )
     output: str | None = None
     error: str | None = None
@@ -281,8 +281,8 @@ class SlurmOverride(BaseModel):
         if other.gpus_per_node is not None:
             self.gpus_per_node = other.gpus_per_node
 
-        if other.ntasks_per_node is not None:
-            self.ntasks_per_node = other.ntasks_per_node
+        if other.tasks_per_node is not None:
+            self.tasks_per_node = other.tasks_per_node
 
         if other.output is not None:
             self.output = other.output
@@ -324,8 +324,8 @@ class SlurmOverride(BaseModel):
         if self.gpus_per_node is None and other.gpus_per_node is not None:
             self.gpus_per_node = other.gpus_per_node
 
-        if self.ntasks_per_node is None and other.ntasks_per_node is not None:
-            self.ntasks_per_node = other.ntasks_per_node
+        if self.tasks_per_node is None and other.tasks_per_node is not None:
+            self.tasks_per_node = other.tasks_per_node
 
         if self.output is None and other.output is not None:
             self.output = other.output

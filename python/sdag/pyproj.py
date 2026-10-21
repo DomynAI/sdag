@@ -49,7 +49,7 @@ class DetachOptions(SlurmOverride):
     Attributes:
         job_name (str | None): Slurm job name. Defaults to 'sdag'.
         nodes (str | None): Number of nodes. Defaults to 1.
-        ntasks_per_node (str | None): Number of tasks per node.
+        tasks_per_node (str | None): Number of tasks per node.
             Defaults to 1.
         cpus_per_task (str | None): Number of CPUs per task.
             Defaults to 1.
@@ -61,8 +61,8 @@ class DetachOptions(SlurmOverride):
 
     job_name: str | None = Field(alias="job-name", default="sdag")
     nodes: NonNegativeInt | None = 1
-    ntasks_per_node: NonNegativeInt | None = Field(
-        alias="ntasks-per-node", default=1
+    tasks_per_node: NonNegativeInt | None = Field(
+        alias="tasks-per-node", default=1
     )
     cpus_per_task: NonNegativeInt | None = Field(
         alias="cpus-per-task", default=1

@@ -43,7 +43,7 @@ So far, the `--local` option is used to run tasks locally. There are several way
 
     Now, add the script path to the task decorator:
 
-    ```py title="hello.py"
+    ```py title="hello.py" hl_lines="1"
     @hello_world.task("submit.sh")
     def say_hello(name: str):
         print(f"hello from {name}")
@@ -73,9 +73,9 @@ So far, the `--local` option is used to run tasks locally. There are several way
     @pipeline
     def hello_world():
         t = say_hello(name="sdag")
-        t.slurm.account = <account-name>
-        t.slurm.partition = <partition-name>
-        t.slurm.qos = <qos-name>
+        t.slurm.account = "<account-name>"
+        t.slurm.partition = "<partition-name>"
+        t.slurm.qos = "<qos-name>"
         t.slurm.nodes = 1
         t.slurm.tasks_per_node = 1
         t.slurm.cpus_per_task = 1

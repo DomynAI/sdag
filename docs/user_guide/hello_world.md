@@ -29,7 +29,7 @@ sdag compile hello_world --local
 ```
 
 !!! info
-    In more structured codebases it is convenient to explicitly define the base directory pipelines are searched into. Check out the [Structuring Larger Projects](../advanced/larger_projects.md) for details.
+    In more structured codebases it is convenient to explicitly define the base directory pipelines are searched into. Check out [Structuring Larger Projects](../advanced/larger_projects.md) for details.
 
 To run the compiled pipeline, execute:
 

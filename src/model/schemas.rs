@@ -187,7 +187,7 @@ pub struct SlurmOverride {
     pub partition: Option<String>,
     pub qos: Option<String>,
     pub gpus_per_node: Option<usize>,
-    pub ntasks_per_node: Option<String>,
+    pub tasks_per_node: Option<String>,
     pub output: Option<String>,
     pub error: Option<String>,
     pub account: Option<String>,

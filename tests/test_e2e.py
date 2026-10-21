@@ -577,7 +577,7 @@ def test_print_pipeline_status(tmp_path: Path) -> None:
                     "partition": "partition",
                     "qos": "qos1",
                     "gpus-per-node": None,
-                    "ntasks-per-node": None,
+                    "tasks-per-node": None,
                     "output": None,
                     "error": None,
                     "account": None,

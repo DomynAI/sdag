@@ -54,7 +54,7 @@ sdag retry failure
 
 `retry` will reset all failed and skipped tasks before continuing the run. If no tasks failed or get skipped, then `sdag retry` is virtually identical to the `sdag restart` command of the previous section. You can also set the number of retries for a task. Modify `failed_task` as follows:
 
-```py
+```py hl_lines="1"
 @failure.task(script, retries=2)
 def failed_task():
     raise ValueError("Failing...")
