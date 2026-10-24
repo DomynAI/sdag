@@ -42,6 +42,10 @@ class TestSDAG:
             script=ScriptPath(path=Path("a/path")),
             tags=[],
             njobs=1,
+            container="",
+            container_runtime="singularity",
+            container_binds=[],
+            container_options=[],
         )
 
         sdag.add_task(task)
