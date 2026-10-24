@@ -113,9 +113,11 @@ class CompileSettings(BaseSettings):
     """Compilation environment variables.
 
     Attributes:
+        sdag_home (str): sdag home directory. Defaults to '~'.
         sdag_base_path (Path | None): Base path. Defaults to None.
     """
 
+    sdag_home: str = "~"
     sdag_base_path: Path | None = None
 
 

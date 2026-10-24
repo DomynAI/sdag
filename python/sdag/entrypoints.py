@@ -5,7 +5,7 @@
 
 import logging
 
-from sdag.discovery import add_cwd_to_path
+from sdag.discovery import add_cwd_and_src_to_path
 from sdag.settings import configure_logging
 
 logger = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ def cli():
     from sdag.exceptions import CLIError
     from sdag.parser import ExtraArgumentParser, ParserBuilder
 
-    add_cwd_to_path()
+    add_cwd_and_src_to_path()
     parser = (
         ParserBuilder()
         .add_version()
@@ -66,7 +66,7 @@ def sdag_execute(configure_logger: bool = True) -> None:  # noqa: FBT002
     from sdag.io import IOHandler, find_and_import_task
     from sdag.settings import get_cached_settings
 
-    add_cwd_to_path()
+    add_cwd_and_src_to_path()
     start = perf_counter()
     settings = get_cached_settings()
 

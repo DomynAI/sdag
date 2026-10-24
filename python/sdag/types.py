@@ -3,7 +3,7 @@
 
 """Types."""
 
-from typing import Literal
+from typing import Literal, Protocol
 
 ExecMode = Literal["wrap", "ext"]
 """Available execution modes."""
@@ -16,3 +16,25 @@ Scope = Literal["local", "global"]
 
 CacheOptions = Literal["none", "output", "io", "task", "project"]
 """Cache options."""
+
+ContainerRuntime = Literal["singularity", "apptainer"]
+"""Supported runtimes."""
+
+
+class HasContainerSettings(Protocol):
+    """Objects having container settings.
+
+    They can be either tasks, pyprojs, or tags.
+
+    Attributes:
+        container: (str): Container path.
+        container_runtime: (ContainerRuntime | None):
+            Container runtime.
+        container_binds: (list[str]): Container binds.
+        container_options: (list[str]): Container options.
+    """
+
+    container: str
+    container_runtime: ContainerRuntime | None
+    container_binds: list[str]
+    container_options: list[str]

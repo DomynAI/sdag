@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Domyn
 # SPDX-License-Identifier: Apache-2.0
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -10,10 +11,77 @@ from sdag.discovery import (
     _find_extra_pipeline_import_path,
     _find_module_path,
     _find_pipeline_path,
+    add_cwd_and_src_to_path,
     find_all_pipelines,
     get_importable_module_path,
 )
 from sdag.exceptions import DAGNotFoundError
+
+
+@pytest.fixture
+def isolate_syspath(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Set an isolated sys.path."""
+    monkeypatch.setattr(sys, "path", sys.path.copy())
+
+
+@pytest.mark.usefixtures("isolate_syspath")
+def test_add_only_cwd_to_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Add the cwd to the path.
+
+    Args:
+        tmp_path (Path): Temporary path fixture.
+        monkeypatch (pytest.MonkeyPatch): Monkeypatch.
+    """
+    monkeypatch.chdir(tmp_path)
+    add_cwd_and_src_to_path()
+    assert str(tmp_path) in sys.path
+    assert str(tmp_path / "src") not in sys.path
+
+
+@pytest.mark.usefixtures("isolate_syspath")
+def test_add_cwd_but_not_src_to_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Add the cwd to sys.path but not the cwd/src.
+
+    cwd/src/__init__.py exists, so the layout is not flat.
+
+    Args:
+        tmp_path (Path): Temporary path fixture.
+        monkeypatch (pytest.MonkeyPatch): Monkeypatch.
+    """
+
+    monkeypatch.chdir(tmp_path)
+    src = tmp_path / "src"
+    src.mkdir(parents=True, exist_ok=True)
+    (src / "__init__.py").touch()
+    add_cwd_and_src_to_path()
+    assert str(tmp_path) in sys.path
+    assert str(tmp_path / "src") not in sys.path
+
+
+@pytest.mark.usefixtures("isolate_syspath")
+def test_add_cwd_and_src_to_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Add cwd and cwd/src paths to sys.path.
+
+    cwd/src exists but cwd/src/__init__.py doesn't, so
+    the layout is src/
+
+    Args:
+        tmp_path (Path): Temporary path fixture.
+        monkeypatch (pytest.MonkeyPatch): Monkeypatch.
+    """
+
+    monkeypatch.chdir(tmp_path)
+    src = tmp_path / "src"
+    src.mkdir(parents=True, exist_ok=True)
+    add_cwd_and_src_to_path()
+    assert str(tmp_path) in sys.path
+    assert str(tmp_path / "src") in sys.path
 
 
 def test_detect_root_src_layout(tmp_path: Path) -> None:

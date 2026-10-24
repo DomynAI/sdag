@@ -6,19 +6,19 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 
 
-class _ScriptSig:
+class ScriptSignal:
     """Class to signal the default script must be generated."""
 
 
-script = _ScriptSig()
+script = ScriptSignal()
 """Basic script.
 
-This gets turned into:
+It's rendered as:
 
 ```python
 from sdag import Script
 
-Script("#!/bin/bash\\nsdag-execute")
+Script("#!/bin/bash\\n${SDAG_LAUNCHER} sdag-execute")
 ```
 
 It can be directly used in task decorators:
@@ -66,16 +66,6 @@ ScriptUnion = Annotated[
 """Script content or path."""
 
 
-def get_basic_script() -> ScriptContent:
-    """Generate a basic script.
-
-    Returns:
-        ScriptContent: Script only containing shebang
-            and sdag-execute.
-    """
-    return ScriptContent(content="#!/bin/bash\nsdag-execute")
-
-
 class Script:
     """Script content.
 
@@ -93,3 +83,26 @@ class Script:
             content (str): Script content.
         """
         self.content = content
+
+
+def resolve_script(
+    script: str | Path | Script | ScriptSignal,
+) -> ScriptUnion:
+    """Resolve the script of a task.
+
+    Args:
+        script (str | Path | Script | ScriptSignal):
+            User-selected script.
+
+    Returns:
+        ScriptUnion: Script union.
+    """
+    if isinstance(script, ScriptSignal):
+        script_obj = ScriptContent(
+            content="#!/bin/bash\n${SDAG_LAUNCHER} sdag-execute"
+        )
+    elif isinstance(script, Script):
+        script_obj = ScriptContent(content=script.content)
+    else:
+        script_obj = ScriptPath(path=Path(script))
+    return script_obj

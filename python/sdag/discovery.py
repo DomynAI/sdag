@@ -21,13 +21,24 @@ from sdag.wrappers import Pipeline
 logger = logging.getLogger(__name__)
 
 
-def add_cwd_to_path() -> None:
-    """Add the cwd to the path.
+def add_cwd_and_src_to_path() -> None:
+    """Add the cwd and cwd/src to the path.
 
-    Useful for path.to.module:dag imports.
+    The cwd is useful for path.to.module:dag imports. Instead,
+    the src/ case is important for containers. Without it,
+    you would need to manually add the src folder to
+    the PYTHONPATH to make it work, e.g.,
+
+    ```
+    PYTHONPATH=${PWD}/src sdag run <pipeline-name>
+    ```
     """
     cwd = Path.cwd()
     sys.path.insert(0, str(cwd))
+
+    src = cwd / "src"
+    if _is_src_root(src):
+        sys.path.insert(0, str(src))
 
 
 def find_pipeline_by_name(name: str) -> Pipeline:
@@ -251,16 +262,32 @@ def _detect_root(file_path: Path) -> Path:
         (i.e. the package root), or the file's own directory
         if it's a standalone script.
     """
-    init = "__init__.py"
     for parent in file_path.parents:
-        if parent.name == "src" and not (parent / init).exists():
+        if _is_src_root(parent):
             return parent
 
     candidate = file_path.parent
-    while (candidate / init).exists():
+    while (candidate / "__init__.py").exists():
         candidate = candidate.parent
 
     return candidate
+
+
+def _is_src_root(path: Path) -> bool:
+    """Check if the current src directory is the root.
+
+    In the src/ layout the src/ folder exists but src/__init__.py
+    doesn't.
+
+    Args:
+        path (Path): Path to be checked.
+
+    Returns:
+        bool: True if the layout is src/ and the current folder is
+            the root.
+    """
+    init = "__init__.py"
+    return path.name == "src" and path.is_dir() and not (path / init).exists()
 
 
 def _find_extra_pipeline_import_path(

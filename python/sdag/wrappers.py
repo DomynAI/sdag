@@ -45,14 +45,18 @@ from sdag.models import (
 )
 from sdag.scripts import (
     Script,
-    ScriptContent,
-    ScriptPath,
+    ScriptSignal,
     ScriptUnion,
-    _ScriptSig,
-    get_basic_script,
+    resolve_script,
 )
 from sdag.settings import get_compile_settings
-from sdag.types import CacheOptions, Commands, ExecMode, Scope
+from sdag.types import (
+    CacheOptions,
+    Commands,
+    ContainerRuntime,
+    ExecMode,
+    Scope,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -249,6 +253,11 @@ class Task:
             set to 0 to allow for infinite cache size.
         njobs (int): Number of jobs in the array.
         retries (int): Number of retries.
+        container (str): Singularity container path.
+        container_runtime (ContainerRuntime): Container runtime.
+        container_binds (list[str] | None): Directories that will be
+            automatically binded to the container.
+        container_options (list[str]): Singularity container options.
         script (ScriptUnion): Submission script.
     """
 
@@ -264,6 +273,10 @@ class Task:
         cache_size: int,
         njobs: int,
         retries: int,
+        container: str,
+        container_runtime: ContainerRuntime,
+        container_binds: list[str],
+        container_options: list[str],
         script: ScriptUnion,
         tags: list[str],
     ):
@@ -288,6 +301,12 @@ class Task:
                 jobs with each(), njobs represents the number of
                 jobs in the array. Defaults to 1.
             retries (int): Number of retries.
+            container (str): Singularity container path.
+            container_runtime (ContainerRuntime): Container runtime.
+            container_binds (list[str]): Directories that will be
+                automatically binded to the container.
+            container_options (list[str]): Singularity container
+                options.
             script (ScriptUnion): Submission script.
             tags (list[str]): Tags.
         """
@@ -302,6 +321,10 @@ class Task:
         self.njobs = njobs
         self.retries = retries
         self.script = script
+        self.container = container
+        self.container_binds = container_binds
+        self.container_runtime: ContainerRuntime = container_runtime
+        self.container_options = container_options
         self.tags = tags
 
     def __call__(self, *args: NodeUnion, **kwargs: Any) -> TaskNode:
@@ -328,6 +351,10 @@ class Task:
             njobs=self.njobs,
             retries=self.retries,
             script=self.script,
+            container=self.container,
+            container_binds=self.container_binds.copy(),
+            container_runtime=self.container_runtime,
+            container_options=self.container_options.copy(),
             tags=self.tags.copy(),
         )
 
@@ -506,7 +533,7 @@ class Pipeline:
 
     def task(
         self,
-        script: str | Path | Script | _ScriptSig,
+        script: str | Path | Script | ScriptSignal,
         name: str | None = None,
         cmd: Commands = "sbatch",
         mode: ExecMode = "wrap",
@@ -515,12 +542,16 @@ class Pipeline:
         cache_size: int = 1,
         njobs: int = 1,
         retries: int = 0,
+        container: str = "",
+        container_runtime: ContainerRuntime = "singularity",
+        container_binds: list[str] | None = None,
+        container_options: list[str] | None = None,
         tags: list[str] | None = None,
     ) -> Callable[[Callable], Task]:
         """Local task decorator.
 
         Args:
-            script (str | Path | Script | _ScriptSig): Launch script.
+            script (str | Path | Script | ScriptSignal): Launch script.
                 It can be either or a sdag.Script instance.
             name (str | None, optional): Task name. If null, it will
                 default to the function name. Defaults to None.
@@ -548,6 +579,12 @@ class Pipeline:
                 jobs in the array. It is ignored if the task is not
                 an array. Defaults to 1.
             retries: (int): Number of retries. Defaults to 0.
+            container (str): Singularity container path. Defaults to "".
+            container_runtime (ContainerRuntime): Container runtime.
+            container_binds (list[str] | None): Directories that will be
+                automatically binded to the container.
+            container_options (list[str] | None): Singularity container
+                options.
             tags (list[str] | None): Task tags, they can be used to
                 configure sets of tasks globally.
 
@@ -565,12 +602,9 @@ class Pipeline:
                 Task: Task.
             """
             task_name = name if name is not None else fn.__name__
-            if isinstance(script, _ScriptSig):
-                script_obj = get_basic_script()
-            elif isinstance(script, Script):
-                script_obj = ScriptContent(content=script.content)
-            else:
-                script_obj = ScriptPath(path=Path(script))
+            binds = container_binds if container_binds is not None else []
+            script_obj = resolve_script(script)
+            options = [] if container_options is None else container_options
 
             task = Task(
                 fn=fn,
@@ -584,6 +618,10 @@ class Pipeline:
                 njobs=njobs,
                 retries=retries,
                 script=script_obj,
+                container=container,
+                container_binds=binds,
+                container_runtime=container_runtime,
+                container_options=options,
                 tags=tags if tags is not None else [],
             )
             self.add_task(task)
@@ -647,7 +685,7 @@ class Pipeline:
 
 
 def task(
-    script: str | Path | Script | _ScriptSig,
+    script: str | Path | Script | ScriptSignal,
     name: str | None = None,
     cmd: Commands = "sbatch",
     mode: ExecMode = "wrap",
@@ -656,12 +694,16 @@ def task(
     cache_size: int = 1,
     njobs: int = 1,
     retries: int = 0,
+    container: str = "",
+    container_runtime: ContainerRuntime = "singularity",
+    container_binds: list[str] | None = None,
+    container_options: list[str] | None = None,
     tags: list[str] | None = None,
 ) -> Callable[[Callable], Task]:
     """Local task decorator.
 
     Args:
-        script (str | Path | Script | _ScriptSig): Launch script. It
+        script (str | Path | Script | ScriptSignal): Launch script. It
             can be either or a sdag.Script instance.
         name (str | None, optional): Task name. If null, it will
             default to the function name. Defaults to None.
@@ -689,6 +731,12 @@ def task(
             jobs in the array. It is ignored if the task is not
             an array. Defaults to 1.
         retries: (int): Number of retries. Defaults to 0.
+        container (str): Singularity container path. Defaults to "".
+        container_binds (list[str] | None): Directories that will be
+            automatically binded to the container.
+        container_runtime (ContainerRuntime): Container runtime.
+        container_options (list[str] | None): Singularity container
+            options.
         tags (list[str] | None): Task tags, they can be used to
             configure sets of tasks globally.
 
@@ -698,13 +746,9 @@ def task(
 
     def return_task(fn: Callable[..., Any]) -> Task:
         task_name = name if name is not None else fn.__name__
-        if isinstance(script, _ScriptSig):
-            script_obj = get_basic_script()
-        elif isinstance(script, Script):
-            script_obj = ScriptContent(content=script.content)
-        else:
-            script_obj = ScriptPath(path=Path(script))
-
+        options = [] if container_options is None else container_options
+        binds = container_binds if container_binds is not None else []
+        script_obj = resolve_script(script)
         task = Task(
             fn=fn,
             name=task_name,
@@ -717,6 +761,10 @@ def task(
             njobs=njobs,
             retries=retries,
             script=script_obj,
+            container=container,
+            container_binds=binds,
+            container_runtime=container_runtime,
+            container_options=options,
             tags=tags if tags is not None else [],
         )
         master.add_task(task)

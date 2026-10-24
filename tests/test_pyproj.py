@@ -25,6 +25,10 @@ def test_parse_pyproject(tmp_path: Path) -> None:
     max-concurrent-runs = 2
     local = true
     extra-dagdirs = ["sdag.extras"]
+    container = "image.sif"
+    container-runtime = "apptainer"
+    container-binds = ["some/path"]
+    container-options = ["--nv"]
 
     [tool.sdag.envs]
     ENV="value"
@@ -36,6 +40,10 @@ def test_parse_pyproject(tmp_path: Path) -> None:
     tag = "online"
     local = false
     envs = {"ENV" = "another_value"}
+    container = "tag.sif"
+    container-runtime = "singularity"
+    container-binds = ["other/path"]
+    container-options = ["--nv"]
     """
     pyproj_path = tmp_path / "pyproject.toml"
     # so we don't read the main one by accident
@@ -53,12 +61,20 @@ def test_parse_pyproject(tmp_path: Path) -> None:
     assert pyproj.log_level == "debug"
     assert pyproj.slurm_grace_period == 50
     assert pyproj.max_concurrent_runs == 2
+    assert pyproj.container == "image.sif"
+    assert pyproj.container_runtime == "apptainer"
+    assert pyproj.container_binds == ["some/path"]
+    assert pyproj.container_options == ["--nv"]
     assert pyproj.envs == {"ENV": "value"}
+    assert pyproj.detach.job_name == "detached"
+    assert pyproj.extra_dagdirs == ["sdag.extras"]
     assert pyproj.tags[0].tag == "online"
     assert not pyproj.tags[0].local
     assert pyproj.tags[0].envs == {"ENV": "another_value"}
-    assert pyproj.detach.job_name == "detached"
-    assert pyproj.extra_dagdirs == ["sdag.extras"]
+    assert pyproj.tags[0].container == "tag.sif"
+    assert pyproj.tags[0].container_runtime == "singularity"
+    assert pyproj.tags[0].container_binds == ["other/path"]
+    assert pyproj.tags[0].container_options == ["--nv"]
 
 
 def test_parse_pyproject_invalid_tags(tmp_path: Path) -> None:
@@ -142,6 +158,10 @@ def test_parse_sdag_toml(tmp_path: Path) -> None:
     max-concurrent-runs = 2
     local = true
     extra-dagdirs = ["sdag.extras"]
+    container = "image.sif"
+    container-runtime = "apptainer"
+    container-binds = ["some/path"]
+    container-options = ["--nv"]
 
     [envs]
     ENV="value"
@@ -153,6 +173,10 @@ def test_parse_sdag_toml(tmp_path: Path) -> None:
     tag = "online"
     local = false
     envs = {"ENV" = "another_value"}
+    container = "tag.sif"
+    container-runtime = "singularity"
+    container-binds = ["other/path"]
+    container-options = ["--nv"]
     """
     sdag_toml_path = tmp_path / ".sdag.toml"
     with sdag_toml_path.open("w") as f:
@@ -171,10 +195,19 @@ def test_parse_sdag_toml(tmp_path: Path) -> None:
     assert pyproj.log_level == "debug"
     assert pyproj.slurm_grace_period == 50
     assert pyproj.max_concurrent_runs == 2
-    assert pyproj.tags[0].tag == "online"
-    assert not pyproj.tags[0].local
+    assert pyproj.container == "image.sif"
+    assert pyproj.container_runtime == "apptainer"
+    assert pyproj.container_binds == ["some/path"]
+    assert pyproj.container_options == ["--nv"]
     assert pyproj.detach.job_name == "detached"
     assert pyproj.extra_dagdirs == ["sdag.extras"]
+    assert pyproj.tags[0].tag == "online"
+    assert not pyproj.tags[0].local
+    assert pyproj.tags[0].envs == {"ENV": "another_value"}
+    assert pyproj.tags[0].container == "tag.sif"
+    assert pyproj.tags[0].container_runtime == "singularity"
+    assert pyproj.tags[0].container_binds == ["other/path"]
+    assert pyproj.tags[0].container_options == ["--nv"]
 
 
 def test_join_pyproj_and_sdag_toml(tmp_path: Path) -> None:
@@ -190,6 +223,9 @@ def test_join_pyproj_and_sdag_toml(tmp_path: Path) -> None:
     slurm-grace-period = 20
     local = true
     extra-dagdirs = ["sdag.pyproj", "sdag.common"]
+    container = "pyproj.sif"
+    container-binds = ["a/b", "a/c"]
+    container-options = ["--nv"]
 
     [tool.sdag.envs]
     ENV = "value"
@@ -203,11 +239,14 @@ def test_join_pyproj_and_sdag_toml(tmp_path: Path) -> None:
     tag = "online"
     local = false
     envs = {"PYPROJ_TAG_ENV" = "pyproj_tag_value"}
+    container-runtime = "singularity"
+    container = "overwritten.sif"
 
     [[tool.sdag.tags]]
     tag = "large"
     local = true
     envs = {"LARGE_ENV" = "large_value"}
+    container-binds = ["a/b"]
     """
 
     sdag_toml_content = """compiled-dagdir = "path-alt"
@@ -215,6 +254,10 @@ def test_join_pyproj_and_sdag_toml(tmp_path: Path) -> None:
     log-level = "debug"
     local = true
     extra-dagdirs = ["sdag.common", "sdag.sdag_toml"]
+    container = "sdag.sif"
+    container-runtime = "apptainer"
+    container-binds = ["a/b", "a/d"]
+    container-options = ["--writable-tmpfs"]
 
     [envs]
     ANOTHER_ENV = "another_value"
@@ -228,11 +271,15 @@ def test_join_pyproj_and_sdag_toml(tmp_path: Path) -> None:
     tag = "online"
     local = true
     envs = {"SDAG_TAG_ENV" = "sdag_tag_value"}
+    container-binds = ["a/b", "a/d"]
+    container = "online.sif"
+    container-runtime = "apptainer"
 
     [[tags]]
     tag = "small"
     local = true
     envs = {"SMALL_ENV" = "small_value"}
+    container-options = ["--nv"]
     """
 
     pyproj_path = tmp_path / "pyproj.toml"
@@ -259,16 +306,25 @@ def test_join_pyproj_and_sdag_toml(tmp_path: Path) -> None:
         "ANOTHER_ENV": "another_value",
         "OVERWRITTEN": "sdag_value",
     }
+    assert pyproj.container == "sdag.sif"
+    assert pyproj.container_runtime == "apptainer"
+    assert sorted(pyproj.container_binds) == ["a/b", "a/c", "a/d"]
+    assert sorted(pyproj.container_options) == ["--nv", "--writable-tmpfs"]
 
     assert pyproj.tags[0].tag == "large"
     assert pyproj.tags[0].local
     assert pyproj.tags[0].envs == {"LARGE_ENV": "large_value"}
+    assert pyproj.tags[0].container_binds == ["a/b"]
     assert pyproj.tags[1].tag == "online"
     assert pyproj.tags[1].local
+    assert pyproj.tags[1].container_runtime == "apptainer"
+    assert pyproj.tags[1].container == "online.sif"
+    assert pyproj.tags[1].container_binds == ["a/b", "a/d"]
     assert pyproj.tags[1].envs == {"SDAG_TAG_ENV": "sdag_tag_value"}
     assert pyproj.tags[2].tag == "small"
     assert pyproj.tags[2].local
     assert pyproj.tags[2].envs == {"SMALL_ENV": "small_value"}
+    assert pyproj.tags[2].container_options == ["--nv"]
     assert pyproj.detach.job_name == "overwritten"
     assert pyproj.detach.partition == "some-partition"
     assert pyproj.detach.qos == "some-qos"
@@ -525,13 +581,11 @@ def test_override_environment_variables() -> None:
     pyproj = Pyproj.model_validate(pyproj_dict)
     apply_pyproj_configs(dag, pyproj)
 
-    assert task.envs == {
-        "OVERWRITTEN_TAG": "tag_value",
-        "OVERWRITTEN_PYPROJ": "pyproj_value",
-        "ENV_TASK": "task_value",
-        "ENV_PYPROJ": "pyproj_value",
-        "ENV_TAG": "tag_value",
-    }
+    assert task.envs["OVERWRITTEN_TAG"] == "tag_value"
+    assert task.envs["OVERWRITTEN_PYPROJ"] == "pyproj_value"
+    assert task.envs["ENV_TASK"] == "task_value"
+    assert task.envs["ENV_PYPROJ"] == "pyproj_value"
+    assert task.envs["ENV_TAG"] == "tag_value"
 
 
 def test_override_slurm_from_tag() -> None:

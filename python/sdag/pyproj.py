@@ -21,6 +21,7 @@ from pydantic import ConfigDict, Field, NonNegativeInt, model_validator
 
 from sdag.models import DAG, SlurmOverride, TaskNode
 from sdag.scripts import ScriptPath
+from sdag.types import ContainerRuntime, HasContainerSettings
 
 
 class SDAGTag(SlurmOverride):
@@ -40,7 +41,20 @@ class SDAGTag(SlurmOverride):
     tag: str
     local: bool = False
     script_path: Path | None = None
+    container: str = ""
+    container_runtime: ContainerRuntime | None = Field(
+        alias="container-runtime", default=None
+    )
+    container_binds: list[str] = Field(
+        alias="container-binds", default_factory=list
+    )
+    container_options: list[str] = Field(
+        alias="container-options", default_factory=list
+    )
     envs: dict[str, str] = Field(default_factory=dict)
+    model_config = ConfigDict(
+        extra="forbid", validate_by_alias=True, serialize_by_alias=True
+    )
 
 
 class DetachOptions(SlurmOverride):
@@ -69,6 +83,9 @@ class DetachOptions(SlurmOverride):
     )
     output: str | None = r"logs/sdag/sdag_%x.%j.out"
     error: str | None = r"logs/sdag/sdag_%x.%j.err"
+    model_config = ConfigDict(
+        extra="forbid", validate_by_alias=True, serialize_by_alias=True
+    )
 
     def get_detached_args(self) -> list[str]:
         """Get the slurm detach args.
@@ -142,6 +159,16 @@ class Pyproj(SlurmOverride):
     fail_fast: bool = Field(alias="fail-fast", default=False)
     detach: DetachOptions = Field(default_factory=DetachOptions)
     cache_lock: bool = Field(alias="cache-lock", default=True)
+    container: str = ""
+    container_runtime: ContainerRuntime | None = Field(
+        alias="container-runtime", default=None
+    )
+    container_binds: list[str] = Field(
+        alias="container-binds", default_factory=list
+    )
+    container_options: list[str] = Field(
+        alias="container-options", default_factory=list
+    )
     envs: dict[str, str] = Field(default_factory=dict)
     extra_dagdirs: list[str] = Field(
         alias="extra-dagdirs", default_factory=list
@@ -257,6 +284,7 @@ def apply_pyproj_configs(dag: DAG, pyproj: Pyproj) -> None:
     for task in dag.nodes:
         if task.kind == "task":
             apply_pyproj_to_task(task, pyproj)
+            task.set_envs()
 
 
 def apply_pyproj_to_task(task: TaskNode, pyproj: Pyproj) -> None:
@@ -268,6 +296,7 @@ def apply_pyproj_to_task(task: TaskNode, pyproj: Pyproj) -> None:
     """
     if pyproj.local:
         task.cmd = "bash"
+    _apply_container_settings(task, pyproj)
     task.slurm.override_if_not_set(pyproj)
     task.envs |= pyproj.envs
     for tag in pyproj.tags:
@@ -287,7 +316,29 @@ def _apply_tag_configs(task: TaskNode, tag: SDAGTag) -> None:
     if tag.script_path is not None:
         task.script = ScriptPath(path=tag.script_path)
     task.envs |= tag.envs
+    _apply_container_settings(task, tag)
     task.slurm.override_from(tag)
+
+
+def _apply_container_settings(
+    task: TaskNode, obj: HasContainerSettings
+) -> None:
+    """Apply the container settings to the task.
+
+    Args:
+        task (TaskNode): Task modified in place.
+        obj (HasContainerSettings): Object containing higher-priority
+            container settings.
+    """
+    if obj.container:
+        task.container = obj.container
+    if obj.container_runtime is not None:
+        task.container_runtime = obj.container_runtime
+    if obj.container_binds:
+        task.container_binds.extend(obj.container_binds)
+        task.container_binds = list(dict.fromkeys(task.container_binds))
+    if obj.container_options:
+        task.container_options.extend(obj.container_options)
 
 
 def _load_toml(path: str | Path) -> dict[str, Any]:
@@ -338,11 +389,15 @@ def _join_configs(
     sdag_toml_detach = sdag_toml_dict.get("detach", {})
     pyproj_extras = pyproj_dict.get("extra-dagdirs", [])
     sdag_toml_extras = sdag_toml_dict.get("extra-dagdirs", [])
+    pyproj_binds = pyproj_dict.get("container-binds", [])
+    sdag_toml_binds = sdag_toml_dict.get("container-binds", [])
+    pyproj_options = pyproj_dict.get("container-options", [])
+    sdag_toml_options = sdag_toml_dict.get("container-options", [])
 
     if not isinstance(pyproj_tags, list) or not isinstance(
         sdag_toml_tags, list
     ):
-        msg = "Tag specification in configs must be valid lists"
+        msg = "Tag settings must be valid lists"
         raise TypeError(msg)
 
     pyproj_tag_dict = _get_tag_dict(pyproj_tags)
@@ -350,10 +405,14 @@ def _join_configs(
     tag_dict = pyproj_tag_dict | sdag_toml_tag_dict
     configs = pyproj_dict | sdag_toml_dict
     pyproj_extras.extend(sdag_toml_extras)
+    pyproj_binds.extend(sdag_toml_binds)
+    pyproj_options.extend(sdag_toml_options)
     configs["envs"] = pyproj_envs | sdag_envs
     configs["tags"] = list(tag_dict.values())
     configs["detach"] = pyproj_detach | sdag_toml_detach
-    configs["extra-dagdirs"] = list(set(pyproj_extras))
+    configs["extra-dagdirs"] = list(dict.fromkeys(pyproj_extras))
+    configs["container-binds"] = list(dict.fromkeys(pyproj_binds))
+    configs["container-options"] = pyproj_options
 
     return configs
 
