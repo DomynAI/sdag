@@ -10,6 +10,7 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
+
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -27,7 +28,14 @@ from pydantic import (
 from sdag.constants import POSIX_ENV_VARIABLES
 from sdag.exceptions import POSIXOverrideError
 from sdag.scripts import ScriptUnion
-from sdag.types import CacheOptions, Commands, ExecMode, Scope
+from sdag.settings import get_compile_settings
+from sdag.types import (
+    CacheOptions,
+    Commands,
+    ContainerRuntime,
+    ExecMode,
+    Scope,
+)
 
 
 class ArtifactSig:
@@ -371,6 +379,10 @@ class TaskNode(BaseNode):
         njobs (int): Number of jobs if it defines an
             array. Defaults to 1.
         script (ScriptUnion): Script path or content.
+        container (str): Singularity container path.
+        container_binds (list[str] | None): Directories binded
+            to the container.
+        container_options (list[str] | None): Container options.
         tags (list[str]): Task tags.
         kwargs (list[Kwarg]): Input kwargs.
         envs (dict[str, Any]): Environment variables. They
@@ -396,6 +408,10 @@ class TaskNode(BaseNode):
     each: str | None = None
     njobs: int = 1
     script: ScriptUnion
+    container: str = ""
+    container_runtime: ContainerRuntime = "singularity"
+    container_binds: list[str] = Field(default_factory=list)
+    container_options: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
     kwargs: list[Kwarg] = Field(default_factory=list)
     envs: dict[str, Any] = Field(default_factory=dict)
@@ -473,6 +489,96 @@ class TaskNode(BaseNode):
         if self.mode == "ext" and kwarg.key.upper() in POSIX_ENV_VARIABLES:
             raise POSIXOverrideError(task_name=self.name, key=kwarg.key)
         self.kwargs.append(kwarg)
+
+    def set_envs(self) -> None:
+        """Set environment variables."""
+        self._resolve_container()
+        bind_dirs = self._resolve_bind_dirs()
+        binds = " ".join(f"--bind={bind}" for bind in bind_dirs)
+        options = " ".join(self.container_options)
+        launcher = self._resolve_launcher(binds, options)
+
+        self.envs["SDAG_CONTAINER"] = self.container
+        self.envs["SDAG_CONTAINER_RUNTIME"] = self.container_runtime
+        self.envs["SDAG_CONTAINER_OPTIONS"] = options
+        self.envs["SDAG_CONTAINER_BINDS"] = binds
+        self.envs["SDAG_LAUNCHER"] = launcher
+
+    def _resolve_container(self) -> None:
+        """Get the container path if set."""
+        if self.container:
+            self.container = str(Path(self.container).expanduser().resolve())
+
+    def _resolve_launcher(self, binds: str, options: str) -> str:
+        """Get the launcher string.
+
+        Args:
+            binds (str): Binded paths.
+            options (str): Options.
+
+        Returns:
+            str: Launcher string.
+        """
+        launcher = ""
+        if self.container:
+            launcher = (
+                f"{self.container_runtime} exec {binds}"
+                f" {options} {self.container}"
+            )
+        return launcher
+
+    def _resolve_bind_dirs(self) -> list[str]:
+        """Resolve binds.
+
+        sdag binds are resolved and returned. They are:
+
+        - .sdag home directory.
+        - SDAG_BASE_PATH if set.
+        - Any existing folder in the artifact tree if existing.
+        - Any user-selected bind.
+
+        Returns:
+            list[str]: sdag binds.
+        """
+        bind_dirs: set[str] = set()
+        settings = get_compile_settings()
+
+        homedir = (Path(settings.sdag_home) / ".sdag").expanduser().resolve()
+        bind_dirs.add(str(homedir))
+
+        if settings.sdag_base_path is not None:
+            base_path = settings.sdag_base_path.expanduser().resolve()
+            bind_dirs.add(str(base_path))
+
+        for bind in self.container_binds:
+            bind_expanded = self._expand_user_singularity_bind(bind)
+            bind_dirs.add(bind_expanded)
+
+        for artifact in self.output_artifacts:
+            path = artifact.path
+            while not path.is_dir() and path != Path("/"):
+                path = path.parent
+            path_str = str(path.expanduser().resolve())
+            bind_dirs.add(path_str)
+
+        bind_dirs.add(str(Path.cwd()))
+        return sorted(bind_dirs)
+
+    def _expand_user_singularity_bind(self, bind: str) -> str:
+        """Expand user-selected singularity binds.
+
+        This expands things like '~/x:/mnt:ro' so that the
+        source path is absolute.
+
+        Args:
+            bind (str): User-selected bind.
+
+        Returns:
+            str: Expanded bind.
+        """
+        src, sep, rest = bind.partition(":")
+        src_abspath = Path(src).expanduser().resolve()
+        return f"{src_abspath}{sep}{rest}"
 
 
 class RootNode(BaseNode):

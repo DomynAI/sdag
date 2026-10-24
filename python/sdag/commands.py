@@ -398,11 +398,15 @@ def run_task(args: Namespace, extras: dict[str, Any]) -> None:
         scope=task.scope,
         retries=0,
         script=task.script,
+        container=task.container,
+        container_runtime=task.container_runtime,
+        container_binds=task.container_binds,
+        container_options=task.container_options,
         kwargs=[Kwarg(key=k, value=v) for k, v in extras.items()],
     )
-
     pyproj = get_pyproj()
     apply_pyproj_to_task(task, pyproj)
+    task.set_envs()
     task_serialized = task.model_dump_json(warnings="none", by_alias=True)
     core.run_single_task(
         task_serialized,
