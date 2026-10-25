@@ -930,34 +930,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../advanced/entrypoint_customization/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Entrypoint Customization
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../advanced/detaching/" class="md-nav__link">
         
   
@@ -986,6 +958,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../advanced/containers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../advanced/tags/" class="md-nav__link">
         
   
@@ -994,6 +994,34 @@
     
   
     Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced/entrypoint_customization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Entrypoint Customization
   
 
     
@@ -1175,8 +1203,8 @@
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>sdag<span class="w"> </span>retry<span class="w"> </span>failure
 </span></code></pre></div>
 <p><code>retry</code> will reset all failed and skipped tasks before continuing the run. If no tasks failed or get skipped, then <code>sdag retry</code> is virtually identical to the <code>sdag restart</code> command of the previous section. You can also set the number of retries for a task. Modify <code>failed_task</code> as follows:</p>
-<div class="language-py highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nd">@failure</span><span class="o">.</span><span class="n">task</span><span class="p">(</span><span class="n">script</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">failed_task</span><span class="p">():</span>
+<div class="language-py highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="hll"><span class="nd">@failure</span><span class="o">.</span><span class="n">task</span><span class="p">(</span><span class="n">script</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</span></span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">failed_task</span><span class="p">():</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Failing...&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <p>And run the pipeline again:</p>

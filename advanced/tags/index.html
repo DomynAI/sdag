@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../detaching/">
+        <link rel="prev" href="../containers/">
       
       
-        <link rel="next" href="../unit_testing/">
+        <link rel="next" href="../entrypoint_customization/">
       
       
         
@@ -861,14 +861,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../entrypoint_customization/" class="md-nav__link">
+      <a href="../detaching/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Entrypoint Customization
+    Detaching Commands
   
 
     
@@ -889,14 +889,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../detaching/" class="md-nav__link">
+      <a href="../containers/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Detaching Commands
+    Containers
   
 
     
@@ -943,6 +943,34 @@
 
       </a>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../entrypoint_customization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Entrypoint Customization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1052,7 +1080,7 @@
 <p>Tags can be used to specify custom configurations for groups of tasks. Tags can be added to tasks via the <code>tags</code> argument of the <code>@task</code>or <code>@&lt;pipeline-name&gt;.task</code> decorator:</p>
 <div class="language-py highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sdag</span><span class="w"> </span><span class="kn">import</span> <span class="n">script</span><span class="p">,</span> <span class="n">task</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nd">@task</span><span class="p">(</span><span class="n">script</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;online&quot;</span><span class="p">,</span> <span class="s2">&quot;small&quot;</span><span class="p">,</span> <span class="s2">&quot;custom&quot;</span><span class="p">])</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nd">@task</span><span class="p">(</span><span class="n">script</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;online&quot;</span><span class="p">,</span> <span class="s2">&quot;small&quot;</span><span class="p">,</span> <span class="s2">&quot;custom&quot;</span><span class="p">,</span> <span class="s2">&quot;gpu&quot;</span><span class="p">])</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">some_task</span><span class="p">():</span> <span class="o">...</span>
 </span></code></pre></div>
 <p>The corresponding configurations can be set either in the <code>pyproject.toml</code> under <code>[[tool.sdag.tags]]</code> or in the <code>.sdag.toml</code> file under <code>[[tags]]</code>:</p>
@@ -1071,6 +1099,11 @@
 </span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;custom&quot;</span>
 </span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">script-path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;a/custom/script.sh&quot;</span>
 </span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">envs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="s2">&quot;ENV_NAME&quot;</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">&quot;value&quot;</span><span class="p">}</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="k">[[tool.sdag.tags]]</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="n">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gpu&quot;</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="n">container</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gpu-container.sif&quot;</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="n">container-options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;--nv&quot;</span><span class="p">]</span>
 </span></code></pre></div>
 </div>
 <div class="tabbed-block">
@@ -1086,16 +1119,22 @@
 </span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;custom&quot;</span>
 </span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="n">script-path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;a/custom/script.sh&quot;</span>
 </span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">envs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="s2">&quot;ENV_NAME&quot;</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">&quot;value&quot;</span><span class="p">}</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="k">[[tags]]</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="n">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gpu&quot;</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="n">container</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gpu-container.sif&quot;</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="n">container-options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;--nv&quot;</span><span class="p">]</span>
 </span></code></pre></div>
 </div>
 </div>
 </div>
 <p>Tags have higher priority than <code>pyproject.toml</code>/<code>.sdag.toml</code> global configurations. Whenever a task is assigned more than one tag, such configurations are applied in the same order they are provided. Tags can be used to customize the behavior of groups of tasks. For example, some supercomputers have dedicated queues for jobs requiring internet access while others only allow outbound connections on login nodes. Tags can be used to enforce such policies. Moreover, tags specified in the <code>.sdag.toml</code> file override those in the <code>pyproject.toml</code>. So, different <code>.sdag.toml</code> files can be used to make pipelines run transparently across different machines without changing the source code. Tags currently allow one to customize:</p>
 <ul>
-<li><code>cmd</code> (<code>bash</code> or <code>sbatch</code>)</li>
+<li><code>local</code>: To run all relevant tasks as local bash processes.</li>
 <li><code>script-path</code>: Used to change the execution script for selected tasks.</li>
 <li><code>envs</code>: Used to set additional environment variables</li>
 <li>All Slurm settings available in <code>pyproject.toml</code>.</li>
+<li>The container configurations <code>container</code>, <code>container-runtime</code>, <code>container-binds</code>, and <code>container-options</code>.</li>
 </ul>
 
 

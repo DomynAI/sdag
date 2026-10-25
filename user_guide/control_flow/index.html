@@ -930,34 +930,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../advanced/entrypoint_customization/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Entrypoint Customization
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../advanced/detaching/" class="md-nav__link">
         
   
@@ -986,6 +958,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../advanced/containers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../advanced/tags/" class="md-nav__link">
         
   
@@ -994,6 +994,34 @@
     
   
     Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced/entrypoint_customization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Entrypoint Customization
   
 
     
@@ -1197,7 +1225,7 @@ in the main project directory:</p>
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="n">t</span> <span class="o">=</span> <span class="n">option2</span><span class="p">()</span>
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">final_task</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
 </span></code></pre></div>
-<p>Unfortunately, it's not! <code>t</code> in the example will always refer to <code>option2</code>. The <code>oneof</code> node is inspired by Kubeflow and it can be used to reference tasks running on separate branches. Add the following snippet to the same <code>control_flow.py</code> module:</p>
+<p>Unfortunately, it doesn't! <code>t</code> in the example will always refer to <code>option2</code>. The <code>oneof</code> node is inspired by Kubeflow and it can be used to reference tasks running on separate branches. Add the following snippet to the same <code>control_flow.py</code> module:</p>
 <div class="language-py highlight"><span class="filename">control_flow.py</span><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sdag</span><span class="w"> </span><span class="kn">import</span> <span class="n">oneof</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>

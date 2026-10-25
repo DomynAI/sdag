@@ -939,34 +939,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../advanced/entrypoint_customization/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Entrypoint Customization
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../advanced/detaching/" class="md-nav__link">
         
   
@@ -995,6 +967,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../advanced/containers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../advanced/tags/" class="md-nav__link">
         
   
@@ -1003,6 +1003,34 @@
     
   
     Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../advanced/entrypoint_customization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Entrypoint Customization
   
 
     
@@ -1232,13 +1260,33 @@
 </tr>
 <tr>
 <td>detach</td>
-<td>Check out the <a href="../advanced/detaching/">Detaching Commands</a> section for details</td>
+<td>Check out <a href="../advanced/detaching/">Detaching Commands</a> for details</td>
 <td>Sbatch options for detached jobs.</td>
 </tr>
 <tr>
 <td>extra-dagdirs</td>
 <td>[]</td>
 <td>Import strings in the form 'path.to.module' of extra packages pipelines are searched into. Useful to import pipelines from dependencies.</td>
+</tr>
+<tr>
+<td>container</td>
+<td>""</td>
+<td>Path to the container used for all tasks of the project.</td>
+</tr>
+<tr>
+<td>container-runtime</td>
+<td>"singularity"</td>
+<td>Container technology.</td>
+</tr>
+<tr>
+<td>container-binds</td>
+<td>[]</td>
+<td>Paths bound to all containerized tasks.</td>
+</tr>
+<tr>
+<td>container-options</td>
+<td>[]</td>
+<td>Options applied to all containerized tasks.</td>
 </tr>
 </tbody>
 </table>
@@ -1272,7 +1320,7 @@
 <td>Quality of Service</td>
 </tr>
 <tr>
-<td>ntasks-per-node</td>
+<td>tasks-per-node</td>
 <td>Number of tasks per node</td>
 </tr>
 <tr>
@@ -1301,7 +1349,7 @@
 </tr>
 </tbody>
 </table>
-<p>Check out the official <a href="https://slurm.schedmd.com/sbatch.html">documentation</a> for details. All these options are ignored if a task is marked as local. The <code>pyproject.toml</code> file also allows one to define tag configurations. Check out the <a href="../advanced/tags/">tag</a> section for details.</p>
+<p>Check out the official <a href="https://slurm.schedmd.com/sbatch.html">documentation</a> for details. All these options are ignored if a task is marked as local. The <code>pyproject.toml</code> file also allows one to define tag configurations. Check out <a href="../advanced/tags/">Tags</a> for details.</p>
 <h2 id="sdagtoml">.sdag.toml</h2>
 <p>If available, this file must be located in the main project directory. It has the exact same schema as <code>pyproject.toml</code>. However, configurations must not be placed under <code>[tool.sdag]</code>.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1"><code>pyproject.toml</code></label><label for="__tabbed_1_2"><code>.sdag.toml</code></label></div>
