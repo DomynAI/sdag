@@ -19,7 +19,7 @@
     - [Handling Multiple Runs of the Same Pipeline](advanced/concurrent_runs.md)
     - [Structuring Larger Projects](advanced/larger_projects.md)
     - [Detaching Commands](advanced/detaching.md)
-    - [Containerizing Applications](advanced/containers.md)
+    - [Containers](advanced/containers.md)
     - [Tags](advanced/tags.md)
     - [Entrypoint Customization](advanced/entrypoint_customization.md)
     - [Unit Testing](advanced/unit_testing.md)

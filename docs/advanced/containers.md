@@ -1,9 +1,9 @@
-# Containerizing Applications
+# Containers
 
-Docker is often not available on many HPC systems and the main container technology available is typically [Singularity](https://docs.sylabs.io/guides/3.5/user-guide/index.html)/[Apptainer](https://apptainer.org/), which sdag supports out of the box. This section shows how to build a fully offline, containerized project suitable for air-gapped HPC environments.
+Docker is often not available on HPC systems and the main container technology is typically [Singularity](https://docs.sylabs.io/guides/latest/user-guide/)/[Apptainer](https://apptainer.org/), which sdag supports out of the box. This section shows how to build a containerized project suitable for air-gapped HPC environments.
 
 !!! info
-    To follow along with the example you need to install [uv](https://docs.astral.sh/uv/) and [Singularity](https://docs.sylabs.io/guides/3.0/user-guide/installation.html).
+    To follow along with the example you need to install [uv](https://docs.astral.sh/uv/) and [Singularity](https://docs.sylabs.io/guides/latest/user-guide/quick_start.html).
 
 ## Setting up the project
 
@@ -28,19 +28,19 @@ uv add "sdag @ git+https://github.com/DomynAI/sdag"
 uv add numpy
 ```
 
-Add the following configuration to the `pyproject.toml` file as suggested in [Structuring Larger Projects](../advanced/larger_projects.md). This tells sdag pipelines are located in the `workflows` package:
+Add the following configuration to the `pyproject.toml` file as suggested in [Structuring Larger Projects](../advanced/larger_projects.md) to tell sdag where pipelines are located:
 
 ```toml title="pyproject.toml"
 [tool.sdag]
-dagdir = "src/container-proj/workflows
+dagdir = "src/container_proj/workflows"
 ```
 
-Create the `workflows` directory in `src/container-proj`, an empty `__init__.py` file inside it to fully qualify `workflows` as a Python package, and a `container.py` module for the pipeline:
+Create the `workflows` directory in `src/container-proj`, an empty `__init__.py` file inside it to fully qualify `workflows` as a Python package, and a `container.py` module that will contain the pipeline code:
 
 ```sh
-mkdir src/container-proj/workflows
-touch src/container-proj/workflows/__init__.py
-touch src/container-proj/workflows/container.py
+mkdir src/container_proj/workflows
+touch src/container_proj/workflows/__init__.py
+touch src/container_proj/workflows/container.py
 ```
 
 The project tree should look like this:
@@ -50,7 +50,7 @@ container-proj
 ├── pyproject.toml
 ├── README.md
 ├── src
-│   └── container-proj
+│   └── container_proj
 │       ├── __init__.py
 │       └── workflows
 │           ├── __init__.py
@@ -78,14 +78,14 @@ def create_array():
     print(np.array([1, 2, 3]))
 ```
 
-Notice the import statement is conveniently placed inside the task function. sdag never runs tasks at compile time. So, this pipeline can be safely compiled without installing Numpy globally. At runtime, the sdag scheduler starts the task execution inside the container, where dependencies are available.
+Notice the import statement is conveniently placed inside the task function. sdag never runs tasks at compile time. Numpy is added to the project just to record the dependency for the image build, it is not needed to compile the pipeline. At runtime, the sdag scheduler starts the task execution inside the container, where dependencies are available.
 
-Containers can be configured through several fields in the task decorator. The container path is specified in the `container` field. If your system supports Apptainer, set `container_runtime="apptainer"`. The `continainer_options` field can be used to specify a list of options applied at the container startup. `container_binds` can be used to bind additional directories to the container. sdag always binds:
+Containers can be configured in the task decorator. The container path is specified in the `container` field. If your system supports Apptainer, set `container_runtime="apptainer"`. The `container_options` field can be used to specify a list of options applied at the container startup. `container_binds` can be used to bind additional directories to the container. sdag always binds:
 
 - its own `.sdag` working directory.
 - `SDAG_BASE_PATH` if set.
 - The current working directory.
-- All innermost existing directories in artifact trees.
+- The closest existing parent directory of each output artifact.
 
 Here is an example of task using all these fields:
 
@@ -100,7 +100,7 @@ Here is an example of task using all these fields:
 def task_using_gpus(): ...
 ```
 
-These options can be [overwritten](./override.md) by each node in the graph, set globally in the `pyproject.toml` file, of configured for groups of tasks through tags.
+These options can be [overwritten](./override.md) by each node in the graph, set globally in the `pyproject.toml` file, or configured for groups of tasks through tags.
 
 ## Building the container and running the pipeline
 
@@ -145,13 +145,16 @@ and build the container via:
 sudo singularity build container-proj.sif container-proj.def
 ```
 
-Because sdag adds `container-proj/src` to the `PYTHONPATH`, you can freely modify the code without rebuilding the container as long as you don't add new dependencies.
+Because sdag adds `container-proj/src` to the `PYTHONPATH`, you can freely modify the code without rebuilding the container as long as you don't introduce new dependencies.
 
 To run the pipeline, install sdag as a [tool](https://docs.astral.sh/uv/concepts/tools/) to access its CLI:
 
 ```sh
 sdag run container --local
 ```
+
+!!! info
+    Check out the [Slurm](../user_guide/hello_world_slurm.md) section to run this example on Slurm.
 
 ## Containerizing custom scripts
 
@@ -162,15 +165,15 @@ The `script` object provided by sdag is simply:
 ${SDAG_LAUNCHER} sdag-execute
 ```
 
-the `SDAG_LAUNCHER` environment variable is set by the scheduler and contains everything you need to start the task execution. If the task is containerized with Singularity, `SDAG_LAUNCHER` provides the full `singularity exec --bind /some/path ...` command required to start the application. In custom scripts, you can leverage this variable to customize the execution. For example, the following command:
+The `SDAG_LAUNCHER` environment variable is set by the scheduler and carries everything you need to fire the task. If the task is containerized with Singularity, `SDAG_LAUNCHER` provides the full `singularity exec --bind /some/path ...` command required to start the application. In custom scripts, you can leverage this variable to tune the execution. For example, the following command:
 
 ```sh
-${SDAG_LAUNCHER} ray start --head --port=6379
+${SDAG_LAUNCHER} ray start --head
 ```
 
-starts a [Ray](https://docs.ray.io/en/latest/ray-overview/getting-started.html) head node if ray is installed. Because `SDAG_LAUNCHER` is set to an empty string by default, the previous command will also work for for non-containerized tasks. If you need a finer control, the sdag scheduler also sets the following environment variables:
+starts a [Ray](https://docs.ray.io/en/latest/ray-overview/getting-started.html) head node using the task container if Ray is installed. Because `SDAG_LAUNCHER` is set to an empty string by default, the previous command also works for non-containerized tasks. If you need a finer control, the sdag scheduler also sets the following environment variables:
 
-- `SDAG_CONTAINER`: Container path
-- `SDAG_CONTAINER_RUNTIME`: Container runtime (singularity or apptainer)
-- `SDAG_CONTAINER_BINDS`: Bind commands
-- `SDAG_CONTAINER_OPTIONS`: User-selected container options
+- `SDAG_CONTAINER`: Container path.
+- `SDAG_CONTAINER_RUNTIME`: Container runtime (singularity or apptainer).
+- `SDAG_CONTAINER_BINDS`: Bind commands.
+- `SDAG_CONTAINER_OPTIONS`: User-selected container options.
