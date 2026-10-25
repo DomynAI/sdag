@@ -35,7 +35,7 @@ Add the following configuration to the `pyproject.toml` file as suggested in [St
 dagdir = "src/container_proj/workflows"
 ```
 
-Create the `workflows` directory in `src/container-proj`, an empty `__init__.py` file inside it to fully qualify `workflows` as a Python package, and a `container.py` module that will contain the pipeline code:
+Create the `workflows` directory in `src/container_proj`, an empty `__init__.py` file inside it to fully qualify `workflows` as a Python package, and a `container.py` module that will contain the pipeline code:
 
 ```sh
 mkdir src/container_proj/workflows
@@ -145,7 +145,7 @@ and build the container via:
 sudo singularity build container-proj.sif container-proj.def
 ```
 
-Because sdag adds `container-proj/src` to the `PYTHONPATH`, you can freely modify the code without rebuilding the container as long as you don't introduce new dependencies.
+Because sdag adds the project `src` directory to `sys.path`, you can freely modify the code without rebuilding the container as long as you don't introduce new dependencies.
 
 To run the pipeline, install sdag as a [tool](https://docs.astral.sh/uv/concepts/tools/) to access its CLI:
 
@@ -160,7 +160,7 @@ sdag run container --local
 
 The `script` object provided by sdag is simply:
 
-```sh title=script
+```sh title="script"
 #!/bin/bash
 ${SDAG_LAUNCHER} sdag-execute
 ```

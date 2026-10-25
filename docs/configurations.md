@@ -20,8 +20,12 @@ Configurations must be set under `[tool.sdag]`. Here are the available options:
 | fail-fast                    | false                  | If true, kill the scheduler and all running jobs if any task fails. |
 | cache-lock                   | true                   | If true, block the submission of cacheable tasks if a matching one is already running. |
 | envs                         | {}                     | Environment variables available to every task |
-| detach                       | Check out the [Detaching Commands](advanced/detaching.md) section for details | Sbatch options for detached jobs. |
+| detach                       | Check out [Detaching Commands](advanced/detaching.md) for details | Sbatch options for detached jobs. |
 | extra-dagdirs                | []                     | Import strings in the form 'path.to.module' of extra packages pipelines are searched into. Useful to import pipelines from dependencies. |
+| container                    | ""                     | Path to the container used for all tasks of the project. |
+| container-runtime            | "singularity"          | Container technology. |
+| container-binds              | []                     | Paths bound to all containerized tasks. |
+| container-options            | []                     | Options applied to all containerized tasks. |
 
 In the `pyproject.toml` file you can also set a number of Sbatch options that will override those set in scripts or inside pipelines:
 
@@ -40,7 +44,7 @@ In the `pyproject.toml` file you can also set a number of Sbatch options that wi
 | output           | stdout file path |
 | error            | stderr file path |
 
-Check out the official [documentation](https://slurm.schedmd.com/sbatch.html) for details. All these options are ignored if a task is marked as local. The `pyproject.toml` file also allows one to define tag configurations. Check out the [tag](advanced/tags.md) section for details.
+Check out the official [documentation](https://slurm.schedmd.com/sbatch.html) for details. All these options are ignored if a task is marked as local. The `pyproject.toml` file also allows one to define tag configurations. Check out [Tags](advanced/tags.md) for details.
 
 ## .sdag.toml
 
