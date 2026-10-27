@@ -254,7 +254,7 @@ class Task:
         njobs (int): Number of jobs in the array.
         retries (int): Number of retries.
         container (str): Singularity container path.
-        container_runtime (ContainerRuntime): Container runtime.
+        container_runtime (ContainerRuntime | None): Container runtime.
         container_binds (list[str] | None): Directories that will be
             automatically binded to the container.
         container_options (list[str]): Singularity container options.
@@ -274,7 +274,7 @@ class Task:
         njobs: int,
         retries: int,
         container: str,
-        container_runtime: ContainerRuntime,
+        container_runtime: ContainerRuntime | None,
         container_binds: list[str],
         container_options: list[str],
         script: ScriptUnion,
@@ -302,7 +302,8 @@ class Task:
                 jobs in the array. Defaults to 1.
             retries (int): Number of retries.
             container (str): Singularity container path.
-            container_runtime (ContainerRuntime): Container runtime.
+            container_runtime (ContainerRuntime | None): Container
+                runtime.
             container_binds (list[str]): Directories that will be
                 automatically binded to the container.
             container_options (list[str]): Singularity container
@@ -323,7 +324,7 @@ class Task:
         self.script = script
         self.container = container
         self.container_binds = container_binds
-        self.container_runtime: ContainerRuntime = container_runtime
+        self.container_runtime: ContainerRuntime | None = container_runtime
         self.container_options = container_options
         self.tags = tags
 
@@ -543,7 +544,7 @@ class Pipeline:
         njobs: int = 1,
         retries: int = 0,
         container: str = "",
-        container_runtime: ContainerRuntime = "singularity",
+        container_runtime: ContainerRuntime | None = None,
         container_binds: list[str] | None = None,
         container_options: list[str] | None = None,
         tags: list[str] | None = None,
@@ -580,7 +581,9 @@ class Pipeline:
                 an array. Defaults to 1.
             retries: (int): Number of retries. Defaults to 0.
             container (str): Singularity container path. Defaults to "".
-            container_runtime (ContainerRuntime): Container runtime.
+            container_runtime (ContainerRuntime | None): Hardcode the
+                container runtime. None will default to "singularity".
+                Defaults to None.
             container_binds (list[str] | None): Directories that will be
                 automatically binded to the container.
             container_options (list[str] | None): Singularity container
@@ -695,7 +698,7 @@ def task(
     njobs: int = 1,
     retries: int = 0,
     container: str = "",
-    container_runtime: ContainerRuntime = "singularity",
+    container_runtime: ContainerRuntime | None = None,
     container_binds: list[str] | None = None,
     container_options: list[str] | None = None,
     tags: list[str] | None = None,
@@ -734,7 +737,9 @@ def task(
         container (str): Singularity container path. Defaults to "".
         container_binds (list[str] | None): Directories that will be
             automatically binded to the container.
-        container_runtime (ContainerRuntime): Container runtime.
+        container_runtime (ContainerRuntime | None): Hardcode the
+            container runtime. None will default to "singularity".
+            Defaults to None.
         container_options (list[str] | None): Singularity container
             options.
         tags (list[str] | None): Task tags, they can be used to
