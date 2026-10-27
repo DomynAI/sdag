@@ -94,10 +94,10 @@ def test_resolve_launcher(
         task (TaskNode): Task node.
     """
     task.container = container
-    task.container_runtime = "singularity"
+    runtime = "singularity"
     binds = "--bind path"
     options = "--nv"
-    assert task._resolve_launcher(binds, options) == launcher
+    assert task._resolve_launcher(runtime, binds, options) == launcher
 
 
 @pytest.mark.usefixtures("set_home")
