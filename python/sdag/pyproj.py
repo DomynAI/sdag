@@ -7,7 +7,7 @@ import sys
 from argparse import Namespace
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Literal, Self
+from typing import Any, Literal
 
 if sys.version_info >= (3, 11):
     from typing import Self
