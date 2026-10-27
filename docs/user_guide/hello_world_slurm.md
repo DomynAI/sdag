@@ -64,7 +64,7 @@ So far, the `--local` option is used to run tasks locally. There are several way
     time="00:02:00"
     ```
 
-    These configurations are applied globally to all tasks. Check out the [Configuration](../configurations.md) section for details and the [Tags](../advanced/tags.md) section for configuring groups of tasks.
+    These configurations are applied globally or to groups of tasks. Check out [Configuration](../configurations.md) for details.
 
 === "Node override"
     Modify the pipeline as follows:
