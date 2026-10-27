@@ -4,6 +4,7 @@
 """sdag models."""
 
 import sys
+from typing import ClassVar
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -267,91 +268,26 @@ class SlurmOverride(BaseModel):
         extra="forbid", validate_by_alias=True, serialize_by_alias=True
     )
 
-    def override_from(self, other: Self) -> None:  # noqa: C901
-        """Override slurm configs from another set.
+    def override_slurm(self, other: Self) -> None:
+        """Override other slurm configs.
 
         Args:
-            other (Self): Slurm configurations overriding
-                the current ones in place.
+            other (Self): Slurm configurations overwritten
+                by the current ones.
         """
-        if other.job_name is not None:
-            self.job_name = other.job_name
+        for name in SlurmOverride.model_fields:
+            if getattr(self, name) is not None:
+                setattr(other, name, getattr(self, name))
 
-        if other.nodes is not None:
-            self.nodes = other.nodes
-
-        if other.partition is not None:
-            self.partition = other.partition
-
-        if other.qos is not None:
-            self.qos = other.qos
-
-        if other.gpus_per_node is not None:
-            self.gpus_per_node = other.gpus_per_node
-
-        if other.tasks_per_node is not None:
-            self.tasks_per_node = other.tasks_per_node
-
-        if other.output is not None:
-            self.output = other.output
-
-        if other.error is not None:
-            self.error = other.error
-
-        if other.account is not None:
-            self.account = other.account
-
-        if other.cpus_per_task is not None:
-            self.cpus_per_task = other.cpus_per_task
-
-        if other.mem is not None:
-            self.mem = other.mem
-
-        if other.time is not None:
-            self.time = other.time
-
-    def override_if_not_set(self, other: Self) -> None:  # noqa: C901
-        """Override slurm configs if missing.
+    def override_slurm_if_not_set(self, other: Self) -> None:
+        """Override other slurm configs if fields are unset.
 
         Args:
-            other (Self): Slurm configurations overriding
-                the current ones in place if not set.
+            other (Self): Other Slurm settings.
         """
-        if self.job_name is None and other.job_name is not None:
-            self.job_name = other.job_name
-
-        if self.nodes is None and other.nodes is not None:
-            self.nodes = other.nodes
-
-        if self.partition is None and other.partition is not None:
-            self.partition = other.partition
-
-        if self.qos is None and other.qos is not None:
-            self.qos = other.qos
-
-        if self.gpus_per_node is None and other.gpus_per_node is not None:
-            self.gpus_per_node = other.gpus_per_node
-
-        if self.tasks_per_node is None and other.tasks_per_node is not None:
-            self.tasks_per_node = other.tasks_per_node
-
-        if self.output is None and other.output is not None:
-            self.output = other.output
-
-        if self.error is None and other.error is not None:
-            self.error = other.error
-
-        if self.account is None and other.account is not None:
-            self.account = other.account
-
-        if self.cpus_per_task is None and other.cpus_per_task is not None:
-            self.cpus_per_task = other.cpus_per_task
-
-        if self.mem is None and other.mem is not None:
-            self.mem = other.mem
-
-        if self.time is None and other.time is not None:
-            self.time = other.time
+        for name in SlurmOverride.model_fields:
+            if getattr(other, name) is None:
+                setattr(other, name, getattr(self, name))
 
 
 class TaskNode(BaseNode):
@@ -393,6 +329,8 @@ class TaskNode(BaseNode):
             Used to add edges to the graph.
     """
 
+    DEFAULT_RUNTIME: ClassVar[ContainerRuntime] = "singularity"
+
     kind: Literal["task"] = "task"
     parents: list[Parent] = Field(default_factory=list)
     fn_name: str
@@ -409,7 +347,7 @@ class TaskNode(BaseNode):
     njobs: int = 1
     script: ScriptUnion
     container: str = ""
-    container_runtime: ContainerRuntime = "singularity"
+    container_runtime: ContainerRuntime | None = None
     container_binds: list[str] = Field(default_factory=list)
     container_options: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
@@ -496,10 +434,15 @@ class TaskNode(BaseNode):
         bind_dirs = self._resolve_bind_dirs()
         binds = " ".join(f"--bind={bind}" for bind in bind_dirs)
         options = " ".join(self.container_options)
-        launcher = self._resolve_launcher(binds, options)
+        runtime = (
+            self.container_runtime
+            if self.container_runtime
+            else self.DEFAULT_RUNTIME
+        )
+        launcher = self._resolve_launcher(runtime, binds, options)
 
         self.envs["SDAG_CONTAINER"] = self.container
-        self.envs["SDAG_CONTAINER_RUNTIME"] = self.container_runtime
+        self.envs["SDAG_CONTAINER_RUNTIME"] = runtime
         self.envs["SDAG_CONTAINER_OPTIONS"] = options
         self.envs["SDAG_CONTAINER_BINDS"] = binds
         self.envs["SDAG_LAUNCHER"] = launcher
@@ -509,10 +452,11 @@ class TaskNode(BaseNode):
         if self.container:
             self.container = str(Path(self.container).expanduser().resolve())
 
-    def _resolve_launcher(self, binds: str, options: str) -> str:
+    def _resolve_launcher(self, runtime: str, binds: str, options: str) -> str:
         """Get the launcher string.
 
         Args:
+            runtime (str): Resolved container runtime.
             binds (str): Binded paths.
             options (str): Options.
 
@@ -521,10 +465,7 @@ class TaskNode(BaseNode):
         """
         launcher = ""
         if self.container:
-            launcher = (
-                f"{self.container_runtime} exec {binds}"
-                f" {options} {self.container}"
-            )
+            launcher = f"{runtime} exec {binds} {options} {self.container}"
         return launcher
 
     def _resolve_bind_dirs(self) -> list[str]:

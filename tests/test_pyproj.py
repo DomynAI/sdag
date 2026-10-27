@@ -6,7 +6,13 @@ from typing import Any
 
 import pytest
 from sdag.models import DAG, DAGMeta, SlurmOverride, TaskNode
-from sdag.pyproj import DetachOptions, Pyproj, apply_pyproj_configs, get_pyproj
+from sdag.pyproj import (
+    DetachOptions,
+    Pyproj,
+    apply_pyproj_configs,
+    apply_pyproj_to_task,
+    get_pyproj,
+)
 from sdag.scripts import ScriptPath
 
 
@@ -85,13 +91,13 @@ def test_parse_pyproject_invalid_tags(tmp_path: Path) -> None:
     """
     content = """[tool.sdag.tags]
     tag = "online"
-    cmd = "sbatch"
+    local = true
     """
     path = tmp_path / "pyproject.toml"
     with path.open("w") as f:
         f.write(content)
 
-    with pytest.raises(TypeError, match="list"):
+    with pytest.raises(ValueError, match="valid list"):
         get_pyproj(str(path))
 
 
@@ -108,7 +114,7 @@ def test_parse_pyproject_no_tag_name(tmp_path: Path) -> None:
     with path.open("w") as f:
         f.write(content)
 
-    with pytest.raises(ValueError, match="name"):
+    with pytest.raises(ValueError, match="type=missing"):
         get_pyproj(str(path))
 
 
@@ -140,7 +146,36 @@ def test_parse_pyproject_tag_is_not_obj(tmp_path: Path) -> None:
     with path.open("w") as f:
         f.write(content)
 
-    with pytest.raises(TypeError, match="dictionaries"):
+    with pytest.raises(ValueError, match="Input should be a valid dictionary"):
+        get_pyproj(str(path))
+
+
+def test_block_duplicate_tags(tmp_path: Path) -> None:
+    """Check duplicate tag settings are blocked.
+
+    Args:
+        tmp_path (Path): Temporary path fixture.
+    """
+    content = """[[tool.sdag.tags]]
+    tag = "online"
+
+    [[tool.sdag.tags]]
+    tag = "small"
+
+    [[tool.sdag.tags]]
+    tag = "online"
+
+    [[tool.sdag.tags]]
+    tag = "small"
+
+    [[tool.sdag.tags]]
+    tag = "large"
+    """
+    path = tmp_path / "pyproject.toml"
+    with path.open("w") as f:
+        f.write(content)
+
+    with pytest.raises(ValueError, match="online, small"):
         get_pyproj(str(path))
 
 
@@ -238,9 +273,13 @@ def test_join_pyproj_and_sdag_toml(tmp_path: Path) -> None:
     [[tool.sdag.tags]]
     tag = "online"
     local = false
-    envs = {"PYPROJ_TAG_ENV" = "pyproj_tag_value"}
     container-runtime = "singularity"
     container = "overwritten.sif"
+
+    [tool.sdag.tags.envs]
+    PYPROJ_TAG_ENV = "pyproj_tag_value"
+    SDAG_TAG_ENV = "pyproj_tag_value"
+
 
     [[tool.sdag.tags]]
     tag = "large"
@@ -320,7 +359,10 @@ def test_join_pyproj_and_sdag_toml(tmp_path: Path) -> None:
     assert pyproj.tags[1].container_runtime == "apptainer"
     assert pyproj.tags[1].container == "online.sif"
     assert pyproj.tags[1].container_binds == ["a/b", "a/d"]
-    assert pyproj.tags[1].envs == {"SDAG_TAG_ENV": "sdag_tag_value"}
+    assert pyproj.tags[1].envs == {
+        "SDAG_TAG_ENV": "sdag_tag_value",
+        "PYPROJ_TAG_ENV": "pyproj_tag_value",
+    }
     assert pyproj.tags[2].tag == "small"
     assert pyproj.tags[2].local
     assert pyproj.tags[2].envs == {"SMALL_ENV": "small_value"}
@@ -333,6 +375,47 @@ def test_join_pyproj_and_sdag_toml(tmp_path: Path) -> None:
         "sdag.pyproj",
         "sdag.sdag_toml",
     ]
+
+
+def test_join_pyproj_detach_survives(tmp_path: Path) -> None:
+    """Check detach settings explicitly set survive.
+
+    Args:
+        tmp_path (Path): Temporary path fixture.
+    """
+    pyproj_content = """[tool.sdag]
+    account = "pyproj-account"
+
+    [tool.sdag.detach]
+    job-name = "detach-job"
+    partition = "detach-partition"
+    """
+
+    sdag_toml_content = """partition = "sdag-partition"
+    qos = "sdag-qos"
+
+    [detach]
+    nodes = 2
+    """
+
+    pyproj_path = tmp_path / "pyproj.toml"
+    with pyproj_path.open("w") as f:
+        f.write(pyproj_content)
+
+    sdag_toml_path = tmp_path / "sdag.toml"
+    with sdag_toml_path.open("w") as f:
+        f.write(sdag_toml_content)
+
+    pyproj = get_pyproj(
+        pyproj_path=str(pyproj_path), sdag_toml_path=str(sdag_toml_path)
+    )
+
+    assert pyproj.detach.job_name == "detach-job"
+    assert pyproj.detach.account == "pyproj-account"
+    assert pyproj.detach.partition == "detach-partition"
+    assert pyproj.detach.qos == "sdag-qos"
+    assert pyproj.detach.nodes == 2
+    assert pyproj.detach.output is None
 
 
 @pytest.mark.parametrize(
@@ -396,7 +479,7 @@ def test_apply_pyproj_configs(pyproj_dict: dict[str, Any], cmd: str) -> None:
 def test_override_script_path() -> None:
     """Check The script path is overwritten."""
     pyproj = Pyproj.model_validate(
-        {"tags": [{"tag": "TAG1", "script_path": "tag.sh"}]}
+        {"tags": [{"tag": "TAG1", "script-path": "tag.sh"}]}
     )
     task = TaskNode(
         uid=0,
@@ -540,7 +623,10 @@ def test_slurm_override_priority() -> None:
 
 
 def test_override_environment_variables() -> None:
-    """Check environment variables are correctly overwritten."""
+    """Check environment variables are correctly overwritten.
+
+    The correct priority is: hardcoded > tag > pyproj.
+    """
     task = TaskNode(
         uid=0,
         name="task_name",
@@ -553,11 +639,7 @@ def test_override_environment_variables() -> None:
         retries=0,
         tags=["TAG2"],
         script=ScriptPath(path=Path()),
-        envs={
-            "ENV_TASK": "task_value",
-            "OVERWRITTEN_PYPROJ": "task_value",
-            "OVERWRITTEN_TAG": "task_value",
-        },
+        envs={"ENV_TASK": "task_value", "HARDCODED": "task_value"},
     )
     dag = DAG(meta=DAGMeta(pipeline_name="pipe"), nodes=[task])
 
@@ -566,6 +648,7 @@ def test_override_environment_variables() -> None:
             "OVERWRITTEN_PYPROJ": "pyproj_value",
             "OVERWRITTEN_TAG": "pyproj_value",
             "ENV_PYPROJ": "pyproj_value",
+            "HARDCODED": "pyproj_value",
         },
         "tags": [
             {
@@ -573,6 +656,7 @@ def test_override_environment_variables() -> None:
                 "envs": {
                     "OVERWRITTEN_TAG": "tag_value",
                     "ENV_TAG": "tag_value",
+                    "HARDCODED": "tag_value",
                 },
             }
         ],
@@ -586,6 +670,7 @@ def test_override_environment_variables() -> None:
     assert task.envs["ENV_TASK"] == "task_value"
     assert task.envs["ENV_PYPROJ"] == "pyproj_value"
     assert task.envs["ENV_TAG"] == "tag_value"
+    assert task.envs["HARDCODED"] == "task_value"
 
 
 def test_override_slurm_from_tag() -> None:
@@ -680,14 +765,77 @@ class TestDetachOptions:
 
     def test_get_detached_args(self) -> None:
         """Check detached args are correctly retrieved."""
-        detach = DetachOptions.model_validate(
-            {
-                "job-name": "detach",
-                "nodes": None,
-                "tasks-per-node": None,
-                "cpus-per-task": None,
-                "output": None,
-                "error": None,
-            }
-        )
-        assert detach.get_detached_args() == ["--job-name", "detach"]
+        detach = DetachOptions.model_validate({"job-name": "detach"})
+        assert detach.get_detached_args() == [
+            "--cpus-per-task",
+            "1",
+            "--error",
+            r"logs/sdag/sdag_%x.%j.err",
+            "--job-name",
+            "detach",
+            "--nodes",
+            "1",
+            "--output",
+            r"logs/sdag/sdag_%x.%j.out",
+            "--tasks-per-node",
+            "1",
+        ]
+
+
+def test_apply_pyproj_to_task() -> None:
+    """Check priorities are respected."""
+    task = TaskNode(
+        uid=0,
+        name="task_name",
+        fn_name="task_fn",
+        cache="none",
+        code_hash="xyz",
+        mode="ext",
+        cmd="sbatch",
+        scope="local",
+        retries=0,
+        tags=["online", "gpu"],
+        envs={"KEY1": "task_value"},
+        script=ScriptPath(path=Path()),
+        slurm=SlurmOverride(output="output_task.out"),
+        container_binds=["path/task"],
+        container_options=["--nv"],
+    )
+
+    pyproj = Pyproj.model_validate(
+        {
+            "nodes": 1,
+            "container-runtime": "singularity",
+            "output": "output_pyproj.out",
+            "envs": {"KEY1": "pyproj_value"},
+            "tags": [
+                {
+                    "tag": "online",
+                    "local": True,
+                    "nodes": 2,
+                    "error": "error_tag.err",
+                    "container-binds": ["path/online"],
+                    "container-options": ["--writable-tmpfs"],
+                },
+                {
+                    "tag": "gpu",
+                    "nodes": 3,
+                    "container-runtime": "apptainer",
+                    "script-path": Path("gpu-script.sh"),
+                    "container-binds": ["path/task"],
+                },
+            ],
+        }
+    )
+
+    apply_pyproj_to_task(task, pyproj)
+    assert task.cmd == "bash"
+    assert task.slurm.nodes == 3
+    assert task.slurm.output == "output_task.out"
+    assert task.slurm.error == "error_tag.err"
+    assert task.envs == {"KEY1": "task_value"}
+    assert task.container_runtime == "apptainer"
+    assert task.container_binds == ["path/online", "path/task"]
+    assert task.container_options == ["--writable-tmpfs", "--nv"]
+    assert task.script.kind == "script_path"
+    assert task.script.path == Path("gpu-script.sh")

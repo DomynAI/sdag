@@ -17,30 +17,66 @@ else:
     import tomli as tomllib
     from typing_extensions import Self
 
-from pydantic import ConfigDict, Field, NonNegativeInt, model_validator
+from pydantic import (
+    ConfigDict,
+    Field,
+    PrivateAttr,
+    model_validator,
+)
 
 from sdag.models import DAG, SlurmOverride, TaskNode
 from sdag.scripts import ScriptPath
-from sdag.types import ContainerRuntime, HasContainerSettings
+from sdag.types import ContainerRuntime
 
 
-class SDAGTag(SlurmOverride):
-    """Tag configurations.
+class DetachOptions(SlurmOverride):
+    """Detached sdag command options."""
 
-    User are allowed to override slurm variables,
-    command, and script path.
+    def get_detached_args(self) -> list[str]:
+        """Get the slurm detach args.
+
+        Returns:
+            list[str]: Args used by sbatch to submit the
+                detached job.
+        """
+        args: list[str] = []
+        defaults = {
+            "job-name": "sdag",
+            "nodes": 1,
+            "tasks-per-node": 1,
+            "cpus-per-task": 1,
+            "output": r"logs/sdag/sdag_%x.%j.out",
+            "error": r"logs/sdag/sdag_%x.%j.err",
+        }
+        dumped = self.model_dump(exclude_none=True)
+        dumped = defaults | dumped
+        for key, value in sorted(dumped.items()):
+            args.append(f"--{key}")
+            args.append(f"{value}")
+        return args
+
+
+class TaskConfig(SlurmOverride):
+    """Task configurations.
+
+    Configurations applied to all tasks.
 
     Attributes:
-        tag (str): Tag name.
-        local (bool): If True, set the command to 'bash'.
-        script_path (Path | None): Script path.
-        envs (dict[str, str]): Environment variables
-            added to all relevant tasks.
+        local (bool): Set to True to run all tasks as local
+            bash processes. Defaults to False.
+        script_path (Path | None): Change the task script with
+            a custom one. Defaults to None.
+        container (str): Container path. Defaults to "".
+        container_runtime (ContainerRuntime): Container runtime.
+        container_binds (list[str]): Directories binded to the
+            container.
+        container_options (list[str]): Container options.
+        envs (dict[str, str]): Environment variables set by the
+            scheduler.
     """
 
-    tag: str
     local: bool = False
-    script_path: Path | None = None
+    script_path: Path | None = Field(alias="script-path", default=None)
     container: str = ""
     container_runtime: ContainerRuntime | None = Field(
         alias="container-runtime", default=None
@@ -56,53 +92,69 @@ class SDAGTag(SlurmOverride):
         extra="forbid", validate_by_alias=True, serialize_by_alias=True
     )
 
+    def get_overwritten_by(self, other: Self) -> None:
+        """Override values from another object.
 
-class DetachOptions(SlurmOverride):
-    """Detached sdag command options.
+        Args:
+            other (Self): Overriding configurations.
+        """
+        if other.local:
+            self.local = other.local
+        if other.script_path is not None:
+            self.script_path = other.script_path
+        if other.container:
+            self.container = other.container
+        if other.container_runtime:
+            self.container_runtime = other.container_runtime
+        if other.container_binds:
+            self.container_binds.extend(other.container_binds)
+            self.container_binds = list(dict.fromkeys(self.container_binds))
+        if other.container_options:
+            self.container_options.extend(other.container_options)
+        other.override_slurm(self)
+        self.envs |= other.envs
+
+    def apply_to_task(self, task: TaskNode) -> None:
+        """Apply the configurations to a task.
+
+        Hardcoded task configurations have higher priority. The only
+        exceptions are `local` as it is meant for debugging and
+        script_path (as tasks without a script are not allowed).
+
+        Args:
+            task (TaskNode): Task.
+        """
+        if self.local:
+            task.cmd = "bash"
+        if self.script_path is not None:
+            task.script = ScriptPath(path=self.script_path)
+        if not task.container and self.container:
+            task.container = self.container
+        if not task.container_runtime and self.container_runtime:
+            task.container_runtime = self.container_runtime
+        if self.container_binds:
+            task.container_binds = self.container_binds + task.container_binds
+            task.container_binds = list(dict.fromkeys(task.container_binds))
+        if self.container_options:
+            # If duplicated singularity keeps the last one
+            task.container_options = (
+                self.container_options + task.container_options
+            )
+        self.override_slurm_if_not_set(task.slurm)  # type: ignore
+        task.envs = self.envs | task.envs
+
+
+class SDAGTag(TaskConfig):
+    """Tag configurations.
 
     Attributes:
-        job_name (str | None): Slurm job name. Defaults to 'sdag'.
-        nodes (str | None): Number of nodes. Defaults to 1.
-        tasks_per_node (str | None): Number of tasks per node.
-            Defaults to 1.
-        cpus_per_task (str | None): Number of CPUs per task.
-            Defaults to 1.
-        output (str | None): Slurm stdout. Defaults to
-            'logs/sdag/sdag_%x.%j.out'.
-        error (str | None): Slurm stderr. Defaults to
-            'logs/sdag/sdag_%x.%j.err'.
+        tag (str): Tag name.
     """
 
-    job_name: str | None = Field(alias="job-name", default="sdag")
-    nodes: NonNegativeInt | None = 1
-    tasks_per_node: NonNegativeInt | None = Field(
-        alias="tasks-per-node", default=1
-    )
-    cpus_per_task: NonNegativeInt | None = Field(
-        alias="cpus-per-task", default=1
-    )
-    output: str | None = r"logs/sdag/sdag_%x.%j.out"
-    error: str | None = r"logs/sdag/sdag_%x.%j.err"
-    model_config = ConfigDict(
-        extra="forbid", validate_by_alias=True, serialize_by_alias=True
-    )
-
-    def get_detached_args(self) -> list[str]:
-        """Get the slurm detach args.
-
-        Returns:
-            list[str]: Args used by sbatch to submit the
-                detached job.
-        """
-        args: list[str] = []
-        dumped = self.model_dump(exclude_none=True)
-        for key, value in dumped.items():
-            args.append(f"--{key}")
-            args.append(f"{value}")
-        return args
+    tag: str
 
 
-class Pyproj(SlurmOverride):
+class Pyproj(TaskConfig):
     """pyproject.toml configs.
 
     Attributes:
@@ -113,7 +165,6 @@ class Pyproj(SlurmOverride):
             specified.
         time_between_polls (int): Time between successive Slurm polls
             in seconds. Defaults to 5.
-        local (bool): If True, set the command to 'bash'.
         log_level (Literal["debug", "info", "warning", "error"]):
             Logging level.
         max_concurrency (int): Maximum number of tasks executed
@@ -127,9 +178,6 @@ class Pyproj(SlurmOverride):
             any of them fails. Defaults to False.
         cache_lock (bool): Block the submission of cacheable tasks if
             another matching one is already running. Defaults to True.
-        envs (dict[str, str]): Environment variables added to all tasks.
-            They have higher priority with respect to the ones set inside
-            pipelines.
         extra_dagdirs (list[str]): Import strings of additional dagirs
             to import. Useful to use pipelines implemented in
             dependencies.
@@ -139,7 +187,6 @@ class Pyproj(SlurmOverride):
     compiled_dagdir: str = Field(
         alias="compiled-dagdir", default="./compiled-pipelines"
     )
-    local: bool = False
     prepend_compiled_dagdir: bool = Field(
         alias="prepend-compiled-dagdir", default=True
     )
@@ -159,22 +206,11 @@ class Pyproj(SlurmOverride):
     fail_fast: bool = Field(alias="fail-fast", default=False)
     detach: DetachOptions = Field(default_factory=DetachOptions)
     cache_lock: bool = Field(alias="cache-lock", default=True)
-    container: str = ""
-    container_runtime: ContainerRuntime | None = Field(
-        alias="container-runtime", default=None
-    )
-    container_binds: list[str] = Field(
-        alias="container-binds", default_factory=list
-    )
-    container_options: list[str] = Field(
-        alias="container-options", default_factory=list
-    )
-    envs: dict[str, str] = Field(default_factory=dict)
     extra_dagdirs: list[str] = Field(
         alias="extra-dagdirs", default_factory=list
     )
     tags: list[SDAGTag] = Field(default_factory=list)
-
+    _tagmap: dict[str, SDAGTag] = PrivateAttr(default_factory=dict)
     model_config = ConfigDict(
         extra="forbid", validate_by_alias=True, serialize_by_alias=True
     )
@@ -199,6 +235,102 @@ class Pyproj(SlurmOverride):
         return self
 
     @model_validator(mode="after")
+    def spot_duplicate_tags(self) -> Self:
+        """Check if duplicate tag configurations are present.
+
+        Raises:
+            ValueError: Duplicate tag configs are found.
+
+        Returns:
+            Self: pyproj untouched.
+        """
+        seen = set()
+        duplicates = set()
+        for tag in self.tags:
+            if tag.tag in seen:
+                duplicates.add(tag.tag)
+            else:
+                seen.add(tag.tag)
+
+        if duplicates:
+            names = ", ".join(sorted(duplicates))
+            msg = f"Found duplicate tag configurations for tags '{names}'"
+            raise ValueError(msg)
+
+        return self
+
+    @model_validator(mode="after")
+    def fill_tagmap(self) -> Self:
+        """Fill the tagmap.
+
+        Returns:
+            Self: Pyproj.
+        """
+        for tag in self.tags:
+            self._tagmap[tag.tag] = tag
+        return self
+
+    @property
+    def tagmap(self) -> dict[str, SDAGTag]:
+        """Tag name -> tag map.
+
+        Returns:
+            dict[str, SDAGTag]: Map.
+        """
+        return self._tagmap
+
+    def join_cli_args(self, args: Namespace) -> None:
+        """Join the user preferences into the pyproject.
+
+        Args:
+            args (Namespace): Parsed CLI args.
+        """
+        argdict = args.__dict__
+
+        if argdict.get("log_level"):
+            self.log_level = args.log_level
+        if argdict.get("time_between_polls") is not None:
+            self.time_between_polls = args.time_between_polls
+        if argdict.get("max_concurrency") is not None:
+            self.max_concurrency = args.max_concurrency
+        if argdict.get("compiled_dagdir") is not None:
+            self.compiled_dagdir = args.compiled_dagdir
+        if argdict.get("fail_fast"):
+            self.fail_fast = True
+        if argdict.get("local"):
+            self.local = True
+            for tag in self.tags:
+                tag.local = True
+
+    def get_overwritten_by(self, other: Self) -> None:  # type: ignore
+        """Have other settings overriding the present ones.
+
+        Args:
+            other (Self): Overriding settings.
+        """
+        non_task_fields = {
+            "dagdir",
+            "compiled_dagdir",
+            "prepend_compiled_dagdir",
+            "log_level",
+            "time_between_polls",
+            "max_concurrency",
+            "slurm_grace_period",
+            "max_concurrent_runs",
+            "fail_fast",
+            "cache_lock",
+        }
+
+        for field in non_task_fields:
+            if field in other.model_fields_set:
+                setattr(self, field, getattr(other, field))
+
+        self.extra_dagdirs.extend(other.extra_dagdirs)
+        self.extra_dagdirs = list(dict.fromkeys(self.extra_dagdirs))
+        other.detach.override_slurm(self.detach)
+        self._get_tags_overwritten(other)
+        super().get_overwritten_by(other)
+
     def join_args_into_detach(self) -> Self:
         """Override detach args with the pyproj ones.
 
@@ -210,45 +342,28 @@ class Pyproj(SlurmOverride):
         """
         if self.detach.account is None:
             self.detach.account = self.account
-
         if self.detach.partition is None:
             self.detach.partition = self.partition
-
         if self.detach.qos is None:
             self.detach.qos = self.qos
-
         if self.detach.time is None:
             self.detach.time = self.time
 
         return self
 
-    def join_cli_args(self, args: Namespace) -> None:
-        """Join the user preferences into the pyproject.
+    def _get_tags_overwritten(self: Self, other: Self) -> None:
+        """Join tags together.
 
         Args:
-            args (Namespace): Parsed CLI args.
+            self (Self): Overwritten settings.
+            other (Self): Overriding settings.
         """
-        argdict = args.__dict__
-
-        if argdict.get("log_level") is not None:
-            self.log_level = args.log_level
-
-        if argdict.get("time_between_polls") is not None:
-            self.time_between_polls = args.time_between_polls
-
-        if argdict.get("max_concurrency") is not None:
-            self.max_concurrency = args.max_concurrency
-
-        if argdict.get("compiled_dagdir") is not None:
-            self.compiled_dagdir = args.compiled_dagdir
-
-        if argdict.get("fail_fast"):
-            self.fail_fast = True
-
-        if argdict.get("local"):
-            self.local = True
-            for tag in self.tags:
-                tag.local = True
+        tagmap = other.tagmap | self.tagmap
+        for name, tag in self.tagmap.items():
+            if name in other.tagmap:
+                tag.get_overwritten_by(other.tagmap[name])
+        self._tagmap = tagmap
+        self.tags = list(self._tagmap.values())
 
 
 @lru_cache(maxsize=1)
@@ -269,9 +384,11 @@ def get_pyproj(
     """
     pyproj_dict = _load_toml(pyproj_path).get("tool", {}).get("sdag", {})
     sdag_toml_dict = _load_toml(sdag_toml_path)
-    joined_dict = _join_configs(pyproj_dict, sdag_toml_dict)
-
-    return Pyproj.model_validate(joined_dict, by_alias=True)
+    pyproj = Pyproj.model_validate(pyproj_dict)
+    sdag_toml = Pyproj.model_validate(sdag_toml_dict)
+    pyproj.get_overwritten_by(sdag_toml)
+    pyproj.join_args_into_detach()
+    return pyproj
 
 
 def apply_pyproj_configs(dag: DAG, pyproj: Pyproj) -> None:
@@ -294,51 +411,13 @@ def apply_pyproj_to_task(task: TaskNode, pyproj: Pyproj) -> None:
         task (TaskNode): Task node.
         pyproj (Pyproj): Parsed pyproject.
     """
-    if pyproj.local:
-        task.cmd = "bash"
-    _apply_container_settings(task, pyproj)
-    task.slurm.override_if_not_set(pyproj)
-    task.envs |= pyproj.envs
-    for tag in pyproj.tags:
-        if tag.tag in task.tags:
-            _apply_tag_configs(task, tag)
-
-
-def _apply_tag_configs(task: TaskNode, tag: SDAGTag) -> None:
-    """Override the configs from the tag ones.
-
-    Args:
-        task (TaskNode): Task.
-        tag (SDAGTag): tag configurations of the task.
-    """
-    if tag.local:
-        task.cmd = "bash"
-    if tag.script_path is not None:
-        task.script = ScriptPath(path=tag.script_path)
-    task.envs |= tag.envs
-    _apply_container_settings(task, tag)
-    task.slurm.override_from(tag)
-
-
-def _apply_container_settings(
-    task: TaskNode, obj: HasContainerSettings
-) -> None:
-    """Apply the container settings to the task.
-
-    Args:
-        task (TaskNode): Task modified in place.
-        obj (HasContainerSettings): Object containing higher-priority
-            container settings.
-    """
-    if obj.container:
-        task.container = obj.container
-    if obj.container_runtime is not None:
-        task.container_runtime = obj.container_runtime
-    if obj.container_binds:
-        task.container_binds.extend(obj.container_binds)
-        task.container_binds = list(dict.fromkeys(task.container_binds))
-    if obj.container_options:
-        task.container_options.extend(obj.container_options)
+    cfg = TaskConfig()
+    cfg.get_overwritten_by(pyproj)
+    for tag_name in task.tags:
+        tag = pyproj.tagmap.get(tag_name)
+        if tag is not None:
+            cfg.get_overwritten_by(tag)
+    cfg.apply_to_task(task)
 
 
 def _load_toml(path: str | Path) -> dict[str, Any]:
@@ -357,90 +436,3 @@ def _load_toml(path: str | Path) -> dict[str, Any]:
 
     with toml_path.open("rb") as f:
         return tomllib.load(f)
-
-
-def _join_configs(
-    pyproj_dict: dict[str, Any], sdag_toml_dict: dict[str, Any]
-) -> dict[str, Any]:
-    """Join configurations.
-
-    Things that must be done:
-    1. join configuration dicts
-    2. join environment variables
-    3. override tags
-    4. join detach
-    5. replace extras if set
-
-    Args:
-        pyproj_dict (dict[str, Any]): Loaded pyproject.toml.
-        sdag_toml_dict (dict[str, Any]): Loaded sdag.toml.
-
-    Raises:
-        TypeError: Tag configs are not lists.
-
-    Returns:
-        dict[str, Any]: Joined configurations.
-    """
-    pyproj_envs = pyproj_dict.get("envs", {})
-    sdag_envs = sdag_toml_dict.get("envs", {})
-    pyproj_tags = pyproj_dict.get("tags", [])
-    sdag_toml_tags = sdag_toml_dict.get("tags", [])
-    pyproj_detach = pyproj_dict.get("detach", {})
-    sdag_toml_detach = sdag_toml_dict.get("detach", {})
-    pyproj_extras = pyproj_dict.get("extra-dagdirs", [])
-    sdag_toml_extras = sdag_toml_dict.get("extra-dagdirs", [])
-    pyproj_binds = pyproj_dict.get("container-binds", [])
-    sdag_toml_binds = sdag_toml_dict.get("container-binds", [])
-    pyproj_options = pyproj_dict.get("container-options", [])
-    sdag_toml_options = sdag_toml_dict.get("container-options", [])
-
-    if not isinstance(pyproj_tags, list) or not isinstance(
-        sdag_toml_tags, list
-    ):
-        msg = "Tag settings must be valid lists"
-        raise TypeError(msg)
-
-    pyproj_tag_dict = _get_tag_dict(pyproj_tags)
-    sdag_toml_tag_dict = _get_tag_dict(sdag_toml_tags)
-    tag_dict = pyproj_tag_dict | sdag_toml_tag_dict
-    configs = pyproj_dict | sdag_toml_dict
-    pyproj_extras.extend(sdag_toml_extras)
-    pyproj_binds.extend(sdag_toml_binds)
-    pyproj_options.extend(sdag_toml_options)
-    configs["envs"] = pyproj_envs | sdag_envs
-    configs["tags"] = list(tag_dict.values())
-    configs["detach"] = pyproj_detach | sdag_toml_detach
-    configs["extra-dagdirs"] = list(dict.fromkeys(pyproj_extras))
-    configs["container-binds"] = list(dict.fromkeys(pyproj_binds))
-    configs["container-options"] = pyproj_options
-
-    return configs
-
-
-def _get_tag_dict(tags: list) -> dict:
-    """Get a dictionary mapping tag names to tags.
-
-    Args:
-        tags (list): Tag configurations.
-
-    Raises:
-        TypeError: Tag configurations are not dictionaries.
-        ValueError: Tag has no name.
-
-    Returns:
-        dict: tag name -> tag config map
-    """
-    tag_dict: dict[Any, dict[Any, Any]] = {}
-    for tag in tags:
-        if not isinstance(tag, dict):
-            msg = f"Tags must be valid dictionaries. Invalid tag: '{tag}'"
-            raise TypeError(msg)
-
-        tag_name = tag.get("tag")
-        if not tag_name:
-            msg = f"Tags must have a valid name. Invalid tag: '{tag}'"
-            raise ValueError(msg)
-
-        tag_dict[tag_name] = tag
-
-    return tag_dict

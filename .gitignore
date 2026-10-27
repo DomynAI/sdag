@@ -182,3 +182,6 @@ debug*
 
 # example artifact
 artifact.txt
+
+# cargo configs
+.cargo/config.toml

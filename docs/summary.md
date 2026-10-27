@@ -20,7 +20,6 @@
     - [Structuring Larger Projects](advanced/larger_projects.md)
     - [Detaching Commands](advanced/detaching.md)
     - [Containers](advanced/containers.md)
-    - [Tags](advanced/tags.md)
     - [Entrypoint Customization](advanced/entrypoint_customization.md)
     - [Unit Testing](advanced/unit_testing.md)
 - [API reference](api_reference.md)
