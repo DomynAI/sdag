@@ -398,6 +398,7 @@ def run_task(args: Namespace, extras: dict[str, Any]) -> None:
         scope=task.scope,
         retries=0,
         script=task.script,
+        tags=task.tags,
         container=task.container,
         container_runtime=task.container_runtime,
         container_binds=task.container_binds,
