@@ -227,42 +227,63 @@ class BaseNode(BaseModel):
 class SlurmOverride(BaseModel):
     """Override Slurm arguments.
 
-    They must be set following the Slurm conventions.
-
-    Attributes:
-        job_name: (str | None): Job name. Defaults to None.
-        nodes: (int | None): Number of nodes. Defaults to None.
-        partition: (str | None): Partition. Defaults to None.
-        qos: (str | None) = qos. Defaults to None.
-        gpus_per_node: (int | None): GPUs per node. Defaults to None.
-        tasks_per_node: (int | None): Tasks per node.
-            Defaults to None.
-        output: (str | None): stdout. Defaults to None.
-        error: (str | None): stderr. Defaults to None.
-        account: (str | None): Account. Defaults to None.
-        cpus_per_task (int | None): CPUs per task. Defaults to None.
-        mem: (str | None): Memory. Defaults to None.
-        time: (str | None): Wall time. Defaults to None.
+    They must be set following the Slurm conventions. Check out
+    the sbatch docs for detail.
     """
 
     job_name: str | None = Field(alias="job-name", default=None)
-    nodes: NonNegativeInt | None = None
+    account: str | None = None
     partition: str | None = None
     qos: str | None = None
-    gpus_per_node: NonNegativeInt | None = Field(
-        alias="gpus-per-node", default=None
-    )
-    tasks_per_node: NonNegativeInt | None = Field(
-        alias="tasks-per-node", default=None
-    )
+    nodes: NonNegativeInt | str | None = None
+    nodelist: str | None = None
+    exclude: str | None = None
     output: str | None = None
     error: str | None = None
-    account: str | None = None
+    mem: str | None = None
+    time: str | None = None
+    mail_type: str | None = Field(alias="mail-type", default=None)
+    mail_user: str | None = Field(alias="mail-user", default=None)
+    gres: str | None = None
+    gres_flags: str | None = Field(alias="gres-flags", default=None)
+    tmp: str | None = None
+    ntasks: NonNegativeInt | None = None
+    ntasks_per_node: NonNegativeInt | None = Field(
+        alias="ntasks-per-node", default=None
+    )
     cpus_per_task: NonNegativeInt | None = Field(
         alias="cpus-per-task", default=None
     )
-    mem: str | None = None
-    time: str | None = None
+    ntasks_per_core: NonNegativeInt | None = Field(
+        alias="ntasks-per-core", default=None
+    )
+    mem_per_cpu: str | None = Field(alias="mem-per-cpu", default=None)
+    ntasks_per_socket: NonNegativeInt | None = Field(
+        alias="ntasks-per-socket", default=None
+    )
+    threads_per_core: NonNegativeInt | None = Field(
+        alias="threads-per-core", default=None
+    )
+    sockets_per_node: NonNegativeInt | None = Field(
+        alias="sockets-per-node", default=None
+    )
+    cores_per_socket: NonNegativeInt | None = Field(
+        alias="cores-per-socket", default=None
+    )
+    gpus: NonNegativeInt | str | None = None
+    gpus_per_node: NonNegativeInt | str | None = Field(
+        alias="gpus-per-node", default=None
+    )
+    gpus_per_socket: NonNegativeInt | str | None = Field(
+        alias="gpus-per-socket", default=None
+    )
+    gpus_per_task: NonNegativeInt | str | None = Field(
+        alias="gpus-per-task", default=None
+    )
+    mem_per_gpu: str | None = Field(alias="mem-per-gpu", default=None)
+    cpus_per_gpu: NonNegativeInt | None = Field(
+        alias="cpus-per-gpu", default=None
+    )
 
     model_config = ConfigDict(
         extra="forbid", validate_by_alias=True, serialize_by_alias=True

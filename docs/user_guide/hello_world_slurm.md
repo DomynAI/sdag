@@ -34,7 +34,7 @@ So far, the `--local` option is used to run tasks locally. There are several way
     #SBATCH --partition=<partition-name>
     #SBATCH --qos=<qos-name>
     #SBATCH --nodes=1
-    #SBATCH --tasks-per-node=1
+    #SBATCH --ntasks-per-node=1
     #SBATCH --cpus-per-task=1
     #SBATCH --time=00:00:30
 
@@ -77,7 +77,7 @@ So far, the `--local` option is used to run tasks locally. There are several way
         t.slurm.partition = "<partition-name>"
         t.slurm.qos = "<qos-name>"
         t.slurm.nodes = 1
-        t.slurm.tasks_per_node = 1
+        t.slurm.ntasks_per_node = 1
         t.slurm.cpus_per_task = 1
         t.slurm.time = "00:00:30"
     ```

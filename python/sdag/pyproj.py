@@ -43,7 +43,7 @@ class DetachOptions(SlurmOverride):
         defaults = {
             "job-name": "sdag",
             "nodes": 1,
-            "tasks-per-node": 1,
+            "ntasks-per-node": 1,
             "cpus-per-task": 1,
             "output": r"logs/sdag/sdag_%x.%j.out",
             "error": r"logs/sdag/sdag_%x.%j.err",

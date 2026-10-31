@@ -28,22 +28,42 @@ Configurations must be set under `[tool.sdag]`. Here are the available options:
 | container-binds              | []                     | Paths bound to all containerized tasks. |
 | container-options            | []                     | Options applied to all containerized tasks. |
 
-In the `pyproject.toml` file you can also set a number of Sbatch options that will override those set in scripts or inside pipelines:
+In the `pyproject.toml` file you can also set a number of sbatch options that will override those set in scripts:
 
 | Option           | Description |
 |------------------|-------------|
 | job-name         | Job name |
-| nodes            | Number of nodes |
 | account          | Account name |
 | partition        | Partition |
 | qos              | Quality of Service |
-| tasks-per-node   | Number of tasks per node |
-| cpus-per-task    | Number of CPUs per task |
-| gpus-per-node    | Number of GPUs per node |
-| time             | Wall time |
-| mem              | Requested memory |
+| nodes            | Number of nodes |
+| nodelist         | Request a specific list of nodes |
+| exclude          | Node exclusion list |
 | output           | stdout file path |
 | error            | stderr file path |
+| mem              | Requested memory |
+| time             | Wall time |
+| mail-type | Notify on state change: BEGIN, END, FAIL or ALL |
+| mail-user | User e-mail |
+| gres | generic resources |
+| gres-flags | gres flags |
+| tmp | Temporary disk |
+| ntasks | Number of tasks |
+| ntasks-per-node | Number of tasks per node |
+| cpus-per-task    | Number of CPUs per task |
+| ntasks-per-core | Number of tasks per core |
+| mem-per-cpu | Real memory per allocated CPU |
+| ntasks-per-socket | Number of tasks to invoke on each socket |
+| threads-per-core | Number of threads per core |
+| sockets-per-node | Number of sockets per node |
+| cores-per-socket | Number of cores per socket |
+| gpus | Number of GPUs |
+| gpus-per-node    | Number of GPUs per node |
+| gpus-per-socket | Number of GPUs per socket |
+| gpus-per-task | Number of GPUs per task |
+| mem-per-gpu | Real memory required per allocated GPU |
+| cpus-per-gpu | Number of CPUs per allocated GPU |
+
 
 Check out the official [documentation](https://slurm.schedmd.com/sbatch.html) for details. All these options are ignored if a task is marked as local.
 
