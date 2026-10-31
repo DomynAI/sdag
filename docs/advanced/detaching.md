@@ -8,7 +8,7 @@ Nevertheless, for long workflows across large graphs it may be better to just su
 sdag run <pipeline-name> --detach
 ```
 
-will compile and start the scheduler as a separate Slurm job. By default, these commands are executed on 1 CPU (`nodes = 1`, `tasks-per-node = 1`, and `cpus-per-task = 1`) and inherit `account`, `partition`, and `qos` from `pyproject.toml`/`.sdag.toml` config files. stdout and stderr are written in a `./logs/sdag` folder. The default behavior can be modified through the `[tool.sdag.detach]` options in the `pyproject.toml`. Check out the [Configuration](../configurations.md) section for details.
+will compile and start the scheduler as a separate Slurm job. By default, these commands are executed on 1 CPU (`nodes = 1`, `ntasks-per-node = 1`, and `cpus-per-task = 1`) and inherit `account`, `partition`, and `qos` from `pyproject.toml`/`.sdag.toml` config files. stdout and stderr are written in a `./logs/sdag` folder. The default behavior can be modified through the `[tool.sdag.detach]` options in the `pyproject.toml`. Check out the [Configuration](../configurations.md) section for details.
 
 When the detached scheduler starts, you can use:
 

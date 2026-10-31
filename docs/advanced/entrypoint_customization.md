@@ -18,7 +18,7 @@ It is now possible to create a `submit.sh` file with a call to this module:
 #SBATCH --partition=<partition-name>
 #SBATCH --qos=<qos-name>
 #SBATCH --nodes=1
-#SBATCH --tasks-per-node=1
+#SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --time=00:00:30
 
