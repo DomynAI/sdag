@@ -179,21 +179,57 @@ pub struct Checkpoint<'a> {
     #[serde(borrow)]
     pub node_ctxs: Cow<'a, [NodeCtx]>,
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(untagged)]
+pub enum UsizeOrString {
+    Usize(usize),
+    String(String),
+}
+
+impl fmt::Display for UsizeOrString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::String(s) => write!(f, "{s}"),
+            Self::Usize(u) => write!(f, "{u}"),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct SlurmOverride {
     pub job_name: Option<String>,
-    pub nodes: Option<usize>,
+    pub account: Option<String>,
     pub partition: Option<String>,
     pub qos: Option<String>,
-    pub gpus_per_node: Option<usize>,
-    pub tasks_per_node: Option<String>,
+    pub nodes: Option<UsizeOrString>,
+    pub nodelist: Option<String>,
+    pub exclude: Option<String>,
     pub output: Option<String>,
     pub error: Option<String>,
-    pub account: Option<String>,
-    pub cpus_per_task: Option<usize>,
     pub mem: Option<String>,
     pub time: Option<String>,
+    pub mail_type: Option<String>,
+    pub mail_user: Option<String>,
+    pub gres: Option<String>,
+    pub gres_flags: Option<String>,
+    pub tmp: Option<String>,
+    pub ntasks: Option<usize>,
+    pub ntasks_per_node: Option<usize>,
+    pub cpus_per_task: Option<usize>,
+    pub ntasks_per_core: Option<usize>,
+    pub mem_per_cpu: Option<String>,
+    pub ntasks_per_socket: Option<usize>,
+    pub threads_per_core: Option<usize>,
+    pub sockets_per_node: Option<usize>,
+    pub cores_per_socket: Option<usize>,
+    pub gpus: Option<UsizeOrString>,
+    pub gpus_per_node: Option<UsizeOrString>,
+    pub gpus_per_socket: Option<UsizeOrString>,
+    pub gpus_per_task: Option<UsizeOrString>,
+    pub mem_per_gpu: Option<String>,
+    pub cpus_per_gpu: Option<usize>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
@@ -236,5 +272,13 @@ mod tests {
     fn verify_hash_length() {
         let hash = get_new_dag_hash();
         assert_eq!(hash.chars().count(), 12);
+    }
+
+    #[test]
+    fn parse_nodes_as_string() {
+        let slurm: SlurmOverride =
+            serde_json::from_str(r#"{"nodes": 1, "gpus-per-node": "a100:2"}"#).unwrap();
+        assert_eq!(format!("{}", slurm.nodes.unwrap()), "1");
+        assert_eq!(format!("{}", slurm.gpus_per_node.unwrap()), "a100:2");
     }
 }

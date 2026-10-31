@@ -259,17 +259,13 @@ fn override_sbatch(
     output: &str,
     error: &str,
 ) {
-    cmd.arg(format!("--error={error}"));
-    cmd.arg(format!("--output={output}"));
-
     let mut job_name = name;
     if let Some(user_job_name) = &slurm.job_name {
         job_name = user_job_name;
     }
     cmd.arg(format!("--job-name={job_name}"));
-
-    if let Some(nodes) = &slurm.nodes {
-        cmd.arg(format!("--nodes={nodes}"));
+    if let Some(account) = &slurm.account {
+        cmd.arg(format!("--account={account}"));
     }
     if let Some(partition) = &slurm.partition {
         cmd.arg(format!("--partition={partition}"));
@@ -277,23 +273,83 @@ fn override_sbatch(
     if let Some(qos) = &slurm.qos {
         cmd.arg(format!("--qos={qos}"));
     }
-    if let Some(gpus_per_node) = &slurm.gpus_per_node {
-        cmd.arg(format!("--gpus-per-node={gpus_per_node}"));
+    if let Some(nodes) = &slurm.nodes {
+        cmd.arg(format!("--nodes={nodes}"));
     }
-    if let Some(tasks_per_node) = &slurm.tasks_per_node {
-        cmd.arg(format!("--tasks-per-node={tasks_per_node}"));
+
+    if let Some(nodelist) = &slurm.nodelist {
+        cmd.arg(format!("--nodelist={nodelist}"));
     }
-    if let Some(account) = &slurm.account {
-        cmd.arg(format!("--account={account}"));
+    if let Some(exclude) = &slurm.exclude {
+        cmd.arg(format!("--exclude={exclude}"));
     }
-    if let Some(cpus_per_task) = &slurm.cpus_per_task {
-        cmd.arg(format!("--cpus-per-task={cpus_per_task}"));
-    }
+    cmd.arg(format!("--error={error}"));
+    cmd.arg(format!("--output={output}"));
     if let Some(mem) = &slurm.mem {
         cmd.arg(format!("--mem={mem}"));
     }
     if let Some(time) = &slurm.time {
         cmd.arg(format!("--time={time}"));
+    }
+    if let Some(mail_type) = &slurm.mail_type {
+        cmd.arg(format!("--mail-type={mail_type}"));
+    }
+    if let Some(mail_user) = &slurm.mail_user {
+        cmd.arg(format!("--mail-user={mail_user}"));
+    }
+    if let Some(gres) = &slurm.gres {
+        cmd.arg(format!("--gres={gres}"));
+    }
+    if let Some(gres_flags) = &slurm.gres_flags {
+        cmd.arg(format!("--gres-flags={gres_flags}"));
+    }
+    if let Some(tmp) = &slurm.tmp {
+        cmd.arg(format!("--tmp={tmp}"));
+    }
+    if let Some(ntasks) = &slurm.ntasks {
+        cmd.arg(format!("--ntasks={ntasks}"));
+    }
+    if let Some(ntasks_per_node) = &slurm.ntasks_per_node {
+        cmd.arg(format!("--ntasks-per-node={ntasks_per_node}"));
+    }
+    if let Some(cpus_per_task) = &slurm.cpus_per_task {
+        cmd.arg(format!("--cpus-per-task={cpus_per_task}"));
+    }
+    if let Some(ntasks_per_core) = &slurm.ntasks_per_core {
+        cmd.arg(format!("--ntasks-per-core={ntasks_per_core}"));
+    }
+    if let Some(mem_per_cpu) = &slurm.mem_per_cpu {
+        cmd.arg(format!("--mem-per-cpu={mem_per_cpu}"));
+    }
+    if let Some(ntasks_per_socket) = &slurm.ntasks_per_socket {
+        cmd.arg(format!("--ntasks-per-socket={ntasks_per_socket}"));
+    }
+    if let Some(threads_per_core) = &slurm.threads_per_core {
+        cmd.arg(format!("--threads-per-core={threads_per_core}"));
+    }
+    if let Some(sockets_per_node) = &slurm.sockets_per_node {
+        cmd.arg(format!("--sockets-per-node={sockets_per_node}"));
+    }
+    if let Some(cores_per_socket) = &slurm.cores_per_socket {
+        cmd.arg(format!("--cores-per-socket={cores_per_socket}"));
+    }
+    if let Some(gpus) = &slurm.gpus {
+        cmd.arg(format!("--gpus={gpus}"));
+    }
+    if let Some(gpus_per_node) = &slurm.gpus_per_node {
+        cmd.arg(format!("--gpus-per-node={gpus_per_node}"));
+    }
+    if let Some(gpus_per_socket) = &slurm.gpus_per_socket {
+        cmd.arg(format!("--gpus-per-socket={gpus_per_socket}"));
+    }
+    if let Some(gpus_per_task) = &slurm.gpus_per_task {
+        cmd.arg(format!("--gpus-per-task={gpus_per_task}"));
+    }
+    if let Some(mem_per_gpu) = &slurm.mem_per_gpu {
+        cmd.arg(format!("--mem-per-gpu={mem_per_gpu}"));
+    }
+    if let Some(cpus_per_gpu) = &slurm.cpus_per_gpu {
+        cmd.arg(format!("--cpus-per-gpu={cpus_per_gpu}"));
     }
 }
 
