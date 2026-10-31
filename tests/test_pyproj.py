@@ -523,7 +523,7 @@ def test_override_all_slurm_cmds() -> None:
         "partition": "partiton",
         "qos": "qos",
         "gpus-per-node": 4,
-        "tasks-per-node": 3,
+        "ntasks-per-node": 3,
         "output": "out",
         "error": "err",
         "account": "acc",
@@ -535,7 +535,7 @@ def test_override_all_slurm_cmds() -> None:
     pyproj = Pyproj.model_validate(pyproj_dict)
     apply_pyproj_configs(dag, pyproj)
 
-    assert task.slurm.model_dump() == pyproj_dict
+    assert task.slurm.model_dump(exclude_none=True) == pyproj_dict
 
 
 def test_hardcoded_slurm_settings_are_preserved() -> None:
@@ -546,7 +546,7 @@ def test_hardcoded_slurm_settings_are_preserved() -> None:
         "partition": "partiton",
         "qos": "qos",
         "gpus-per-node": 2,
-        "tasks-per-node": 2,
+        "ntasks-per-node": 2,
         "output": "out",
         "error": "err",
         "account": "acc",
@@ -560,7 +560,7 @@ def test_hardcoded_slurm_settings_are_preserved() -> None:
         "partition": "partiton-hard",
         "qos": "qos-hard",
         "gpus-per-node": 1,
-        "tasks-per-node": 1,
+        "ntasks-per-node": 1,
         "output": "out-hard",
         "error": "err-hard",
         "account": "acc-hard",
@@ -586,7 +586,9 @@ def test_hardcoded_slurm_settings_are_preserved() -> None:
     apply_pyproj_configs(dag, pyproj)
 
     assert dag.nodes[0].kind == "task"
-    assert dag.nodes[0].slurm.model_dump() == hardcoded_options
+    assert (
+        dag.nodes[0].slurm.model_dump(exclude_none=True) == hardcoded_options
+    )
 
 
 def test_slurm_override_priority() -> None:
@@ -695,7 +697,7 @@ def test_override_slurm_from_tag() -> None:
         "partition": "partiton-1",
         "qos": "qos-1",
         "gpus-per-node": 1,
-        "tasks-per-node": 1,
+        "ntasks-per-node": 1,
         # output intentionally skipped
         "error": "err-1",
         "account": "acc-1",
@@ -710,7 +712,7 @@ def test_override_slurm_from_tag() -> None:
                 "partition": "partiton-2",
                 "qos": "qos-2",
                 "gpus-per-node": 2,
-                "tasks-per-node": 2,
+                "ntasks-per-node": 2,
                 "output": "out-2",
                 "error": "err-2",
                 "account": "acc-2",
@@ -727,7 +729,7 @@ def test_override_slurm_from_tag() -> None:
     tag_slurm = pyproj_dict["tags"][0].copy()
     tag_slurm.pop("tag")
 
-    assert task.slurm.model_dump() == tag_slurm
+    assert task.slurm.model_dump(exclude_none=True) == tag_slurm
 
 
 def test_join_args_into_detach(tmp_path: Path) -> None:
@@ -775,10 +777,10 @@ class TestDetachOptions:
             "detach",
             "--nodes",
             "1",
+            "--ntasks-per-node",
+            "1",
             "--output",
             r"logs/sdag/sdag_%x.%j.out",
-            "--tasks-per-node",
-            "1",
         ]
 
 
