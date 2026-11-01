@@ -1,11 +1,11 @@
 <div align="center">
 
-<img src="docs/assets/sdag-logo-primary.svg#gh-light-mode-only" alt="sdag" style="height: clamp(60px, 8vw, 120px)">
-<img src="docs/assets/sdag-logo-white.svg#gh-dark-mode-only" alt="sdag" style="height: clamp(60px, 8vw, 120px)">
+<img src="https://raw.githubusercontent.com/DomynAI/sdag/refs/heads/main/docs/assets/sdag-logo-primary.svg#gh-light-mode-only" alt="sdag" style="height: clamp(60px, 8vw, 120px)">
+<img src="https://raw.githubusercontent.com/DomynAI/sdag/refs/heads/main/docs/assets/sdag-logo-white.svg#gh-dark-mode-only" alt="sdag" style="height: clamp(60px, 8vw, 120px)">
 
 DAGs for Slurm.
 
-[![License - Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue)](LICENSE)
+[![License - Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue)](https://raw.githubusercontent.com/DomynAI/sdag/refs/heads/main/LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue)](https://DomynAI.github.io/sdag/)
 [![CI](https://github.com/DomynAI/sdag/actions/workflows/ci.yaml/badge.svg)](https://github.com/DomynAI/sdag/actions/workflows/ci.yaml)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14%20%7C%203.15-brightgreen)](https://github.com/DomynAI/sdag/blob/main/pyproject.toml)
@@ -29,31 +29,17 @@ sdag tries to fill this gap by providing a typed, code-first API. Its design loo
 
 ## Installation
 
-sdag is not available on pypi yet (it's coming soon!). If you manage dependencies with [uv](https://docs.astral.sh/uv/), you can directly install sdag from GitHub:
+```sh
+pip install sdag
+```
+
+If you manage dependencies with [uv](https://docs.astral.sh/uv/), you can directly install sdag from GitHub:
 
 ```sh
 uv add "sdag @ git+https://github.com/DomynAI/sdag"
 ```
 
-You can also install sdag as a tool to gain global access to it:
-
-```sh
-uv tool install "sdag @ git+https://github.com/DomynAI/sdag"
-```
-
-To install sdag with pip, first clone the GitHub repository:
-
-```sh
-git clone https://github.com/DomynAI/sdag.git
-```
-
-and then install sdag:
-
-```sh
-pip install path/to/sdag
-```
-
-If you face issues in the process, you likely have to install [Rust](https://rust-lang.org/tools/install/) or update it to a more recent version via:
+If you face issues in the process, you likely have to install [Rust](https://rust-lang.org/tools/install/) or update it to a more recent version:
 
 ```sh
 rustup update
