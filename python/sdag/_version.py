@@ -1,7 +1,9 @@
 # SPDX-FileCopyrightText: 2026 Domyn
 # SPDX-License-Identifier: Apache-2.0
 
-"""Version."""
+"""sdag version read from Cargo.toml."""
 
-__version__ = "0.3.0"
+from importlib.metadata import version
+
+__version__ = version("sdag")
 """sdag version."""

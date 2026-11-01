@@ -7,13 +7,18 @@ from pathlib import Path
 
 import pytest
 from sdag.entrypoints import cli, sdag_execute
-from sdag.exceptions import CLIError
 
 
-def test_weird_arguments_are_blocked():
-    sys.argv = ["sdag", "-j"]
-    with pytest.raises(CLIError):
+@pytest.mark.parametrize(argnames="argv", argvalues=[["sdag"], ["sdag", "-j"]])
+def test_weird_arguments_are_blocked(
+    argv: list[str], capsys: pytest.CaptureFixture
+):
+    sys.argv = argv
+    with pytest.raises(SystemExit) as exc:
         cli()
+
+    assert exc.value.code == 2
+    assert "usage:" in capsys.readouterr().out
 
 
 @pytest.mark.parametrize(

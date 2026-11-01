@@ -100,15 +100,6 @@ class POSIXOverrideError(SDAGError):
         super().__init__(msg)
 
 
-class CLIError(SDAGError):
-    """CLI error."""
-
-    def __init__(self):
-        """Raise the exception."""
-        msg = "Unknown CLI command."
-        super().__init__(msg)
-
-
 class DAGNotFoundError(SDAGError):
     """DAG not found in path."""
 
