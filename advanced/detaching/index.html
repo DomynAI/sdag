@@ -1053,7 +1053,7 @@
 <p>Nevertheless, for long workflows across large graphs it may be better to just submit the scheduler as a Slurm job on a compute node. This can be achieved by adding the <code>--detach</code> option to the CLI command. For example:</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>sdag<span class="w"> </span>run<span class="w"> </span>&lt;pipeline-name&gt;<span class="w"> </span>--detach
 </span></code></pre></div>
-<p>will compile and start the scheduler as a separate Slurm job. By default, these commands are executed on 1 CPU (<code>nodes = 1</code>, <code>tasks-per-node = 1</code>, and <code>cpus-per-task = 1</code>) and inherit <code>account</code>, <code>partition</code>, and <code>qos</code> from <code>pyproject.toml</code>/<code>.sdag.toml</code> config files. stdout and stderr are written in a <code>./logs/sdag</code> folder. The default behavior can be modified through the <code>[tool.sdag.detach]</code> options in the <code>pyproject.toml</code>. Check out the <a href="../../configurations/">Configuration</a> section for details.</p>
+<p>will compile and start the scheduler as a separate Slurm job. By default, these commands are executed on 1 CPU (<code>nodes = 1</code>, <code>ntasks-per-node = 1</code>, and <code>cpus-per-task = 1</code>) and inherit <code>account</code>, <code>partition</code>, and <code>qos</code> from <code>pyproject.toml</code>/<code>.sdag.toml</code> config files. stdout and stderr are written in a <code>./logs/sdag</code> folder. The default behavior can be modified through the <code>[tool.sdag.detach]</code> options in the <code>pyproject.toml</code>. Check out the <a href="../../configurations/">Configuration</a> section for details.</p>
 <p>When the detached scheduler starts, you can use:</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>sdag<span class="w"> </span>status<span class="w"> </span>&lt;pipeline-name&gt;
 </span></code></pre></div>
@@ -1075,6 +1075,8 @@
             </div>
           
           
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
         
@@ -1107,7 +1109,7 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.select", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.select", "content.code.annotate", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
       <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>

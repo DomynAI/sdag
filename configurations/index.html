@@ -1311,7 +1311,7 @@
 </tr>
 </tbody>
 </table>
-<p>In the <code>pyproject.toml</code> file you can also set a number of Sbatch options that will override those set in scripts or inside pipelines:</p>
+<p>In the <code>pyproject.toml</code> file you can also set a number of sbatch options that will override those set in scripts:</p>
 <table>
 <thead>
 <tr>
@@ -1323,10 +1323,6 @@
 <tr>
 <td>job-name</td>
 <td>Job name</td>
-</tr>
-<tr>
-<td>nodes</td>
-<td>Number of nodes</td>
 </tr>
 <tr>
 <td>account</td>
@@ -1341,24 +1337,16 @@
 <td>Quality of Service</td>
 </tr>
 <tr>
-<td>tasks-per-node</td>
-<td>Number of tasks per node</td>
+<td>nodes</td>
+<td>Number of nodes</td>
 </tr>
 <tr>
-<td>cpus-per-task</td>
-<td>Number of CPUs per task</td>
+<td>nodelist</td>
+<td>Request a specific list of nodes</td>
 </tr>
 <tr>
-<td>gpus-per-node</td>
-<td>Number of GPUs per node</td>
-</tr>
-<tr>
-<td>time</td>
-<td>Wall time</td>
-</tr>
-<tr>
-<td>mem</td>
-<td>Requested memory</td>
+<td>exclude</td>
+<td>Node exclusion list</td>
 </tr>
 <tr>
 <td>output</td>
@@ -1367,6 +1355,94 @@
 <tr>
 <td>error</td>
 <td>stderr file path</td>
+</tr>
+<tr>
+<td>mem</td>
+<td>Requested memory</td>
+</tr>
+<tr>
+<td>time</td>
+<td>Wall time</td>
+</tr>
+<tr>
+<td>mail-type</td>
+<td>Notify on state change: BEGIN, END, FAIL or ALL</td>
+</tr>
+<tr>
+<td>mail-user</td>
+<td>User e-mail</td>
+</tr>
+<tr>
+<td>gres</td>
+<td>generic resources</td>
+</tr>
+<tr>
+<td>gres-flags</td>
+<td>gres flags</td>
+</tr>
+<tr>
+<td>tmp</td>
+<td>Temporary disk</td>
+</tr>
+<tr>
+<td>ntasks</td>
+<td>Number of tasks</td>
+</tr>
+<tr>
+<td>ntasks-per-node</td>
+<td>Number of tasks per node</td>
+</tr>
+<tr>
+<td>cpus-per-task</td>
+<td>Number of CPUs per task</td>
+</tr>
+<tr>
+<td>ntasks-per-core</td>
+<td>Number of tasks per core</td>
+</tr>
+<tr>
+<td>mem-per-cpu</td>
+<td>Real memory per allocated CPU</td>
+</tr>
+<tr>
+<td>ntasks-per-socket</td>
+<td>Number of tasks to invoke on each socket</td>
+</tr>
+<tr>
+<td>threads-per-core</td>
+<td>Number of threads per core</td>
+</tr>
+<tr>
+<td>sockets-per-node</td>
+<td>Number of sockets per node</td>
+</tr>
+<tr>
+<td>cores-per-socket</td>
+<td>Number of cores per socket</td>
+</tr>
+<tr>
+<td>gpus</td>
+<td>Number of GPUs</td>
+</tr>
+<tr>
+<td>gpus-per-node</td>
+<td>Number of GPUs per node</td>
+</tr>
+<tr>
+<td>gpus-per-socket</td>
+<td>Number of GPUs per socket</td>
+</tr>
+<tr>
+<td>gpus-per-task</td>
+<td>Number of GPUs per task</td>
+</tr>
+<tr>
+<td>mem-per-gpu</td>
+<td>Real memory required per allocated GPU</td>
+</tr>
+<tr>
+<td>cpus-per-gpu</td>
+<td>Number of CPUs per allocated GPU</td>
 </tr>
 </tbody>
 </table>
@@ -1549,6 +1625,8 @@
             </div>
           
           
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
         
@@ -1581,7 +1659,7 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.select", "content.code.annotate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.select", "content.code.annotate", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
       <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
