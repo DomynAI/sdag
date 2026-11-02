@@ -40,9 +40,15 @@ class ParserBuilder:
 
     def __init__(self):
         """Initialize the parser."""
-        self._parser = ArgumentParser(description="SDAG")
+        self._parser = ArgumentParser(
+            description="sdag: DAGs for Slurm.",
+            epilog=(
+                "Check out https://domynai.github.io/sdag/cli/"
+                " for more information."
+            ),
+        )
         self._subparsers = self._parser.add_subparsers(
-            help="Available commands"
+            title="commands", metavar="<command>"
         )
 
     def add_version(self) -> Self:
@@ -67,7 +73,8 @@ class ParserBuilder:
             Self: Parser builder.
         """
         compile_parser = self._subparsers.add_parser(
-            "compile", help="Compile a pipeline."
+            "compile",
+            help="Compile a pipeline and save its JSON representation.",
         )
 
         compile_parser.add_argument(
@@ -75,9 +82,9 @@ class ParserBuilder:
             type=str,
             help=(
                 "Pipeline name or import string (e.g., 'path.to:pipeline_fn')."
-                " By default, pipelines are searched in './pipelines'. You can"
-                " modify this behavior by setting the 'dagdir' in the"
-                " [tool.sdag] field of the pyproject.toml file."
+                " By default, pipelines are searched in './'. You can"
+                " modify this behavior by setting an explicit 'dagdir' in"
+                " the [tool.sdag] field of pyproject.toml."
             ),
         )
 
@@ -94,20 +101,17 @@ class ParserBuilder:
         Returns:
             Self: Parser builder.
         """
-        run_parser = self._subparsers.add_parser(
-            "run", help="Compile and run a pipeline."
-        )
-
+        run_parser = self._subparsers.add_parser("run", help="Run a pipeline.")
         run_parser.add_argument(
             "pipeline",
             type=str,
             help=(
-                "Pipeline name or import string (e.g., 'path.to:pipeline_fn')."
-                " By default, pipelines are searched in the main project"
-                " directory. You can modify this behavior by setting the"
-                " 'dagdir' in the [tool.sdag] field of the pyproject.toml"
-                " file. It can be equal to a valid compiled graph path to"
-                " skip compilation."
+                "Pipeline name, import string (e.g., 'path.to:pipeline_fn'),"
+                " or compiled JSON path. By default, pipelines are searched"
+                " in the main project directory. You can modify this behavior"
+                " by setting an explicit 'dagdir' in the [tool.sdag] field of"
+                " pyproject.toml. If a compiled JSON path is given,"
+                " compilation is skipped."
             ),
         )
 
@@ -127,7 +131,7 @@ class ParserBuilder:
             Self: Parser.
         """
         restart_parser = self._subparsers.add_parser(
-            "restart", help="Restart a previous run."
+            "restart", help="Restart the scheduler of a previous run."
         )
         self._add_pipeline_name_and_hash_or_json(restart_parser)
         self._add_log_level(restart_parser)
@@ -147,9 +151,7 @@ class ParserBuilder:
         restart_parser = self._subparsers.add_parser(
             "retry",
             help=(
-                "Restart a previous run while resetting all"
-                " failed and skipped tasks. If no tasks are failed"
-                " or skipped, it is identical to sdag restart"
+                "Reset all failed and skipped tasks and restart a pipeline."
             ),
         )
         self._add_pipeline_name_and_hash_or_json(restart_parser)
@@ -168,7 +170,7 @@ class ParserBuilder:
             Self: Parser builder.
         """
         kill_parser = self._subparsers.add_parser(
-            "kill", help="Kill the runnig tasks of a pipeline."
+            "kill", help="Terminate a pipeline."
         )
 
         self._add_pipeline_name_and_hash_or_json(kill_parser)
@@ -185,15 +187,16 @@ class ParserBuilder:
             Self: Parser builder.
         """
         prune_parser = self._subparsers.add_parser(
-            "prune", help="Prune the cache of a task."
+            "prune", help="Delete the cache of tasks or pipelines."
         )
         prune_parser.add_argument(
             "tasks",
             nargs="*",
             type=str,
             help=(
-                "Task to be pruned from the cache. Set to"
-                " 'all' to prune the whole cache."
+                "Task name(s). Set to 'all' to"
+                " delete the entire sdag cache. If not provided, the"
+                " cache of the entire pipeline is deleted."
             ),
         )
 
@@ -203,11 +206,9 @@ class ParserBuilder:
             type=str,
             nargs="?",
             help=(
-                "Pipeline. If the name is provided, the pipeline"
-                " will be dynamically discovered. If the import string"
-                " is given, autodiscovery will be skipped. If equal to"
-                " a compiled JSON file, the pipeline data will be taken"
-                " from there, thus skipping compilation entirely."
+                "Pipeline name, import string (e.g., 'path.to:pipeline_fn'),"
+                " or compiled JSON path to skip compilation. If not set, the"
+                " global task cache is deleted."
             ),
         )
 
@@ -217,8 +218,8 @@ class ParserBuilder:
             default=False,
             help=(
                 "Delete the cache of all dependent nodes in the graph."
-                " It is only considered if both tasks and pipeline have"
-                " been specified"
+                " It is only considered if both tasks and pipeline are"
+                " specified."
             ),
         )
 
@@ -237,18 +238,15 @@ class ParserBuilder:
             Self: Parser builder.
         """
         view_parser = self._subparsers.add_parser(
-            "view", help="Visualize DAGs."
+            "view", help="Print a pipeline graph in the terminal."
         )
 
         view_parser.add_argument(
             "pipeline",
             type=str,
             help=(
-                "Pipeline. If the name is provided, the pipeline"
-                " will be dynamically discovered. If the import string"
-                " is given, autodiscovery will be skipped. If equal to"
-                " a compiled JSON file, the pipeline data will be taken"
-                " from there, thus skipping compilation entirely."
+                "Pipeline name, import string (e.g., 'path.to:pipeline_fn'),"
+                " or compiled JSON path to skip compilation."
             ),
         )
 
@@ -273,13 +271,13 @@ class ParserBuilder:
             Self: Parser.
         """
         runtask_parser = self._subparsers.add_parser(
-            "runtask", help="Run a task."
+            "runtask", help="Run a specific task of a pipeline."
         )
 
         runtask_parser.add_argument(
             "task",
             type=str,
-            help="task executed",
+            help="Task name.",
         )
 
         runtask_parser.add_argument(
@@ -305,7 +303,7 @@ class ParserBuilder:
             Self: Parser.
         """
         list_parser = self._subparsers.add_parser(
-            "list", help="List pipelines."
+            "list", help="List pipelines or runs."
         )
 
         list_parser.add_argument(
@@ -314,7 +312,7 @@ class ParserBuilder:
             type=str,
             help=(
                 "Pipeline name. If set, all the available"
-                " runs for this pipeline will be shown."
+                " runs of this pipeline are shown."
             ),
         )
         self._add_log_level(list_parser)
@@ -330,19 +328,15 @@ class ParserBuilder:
             Self: Parser.
         """
         describe_parser = self._subparsers.add_parser(
-            "describe", help="Show input kwargs and caching info."
+            "describe", help="Print information about the tasks of a pipeline."
         )
 
         describe_parser.add_argument(
             "pipeline",
             type=str,
             help=(
-                "Pipeline name or import string (e.g., 'path.to:pipeline_fn')."
-                " By default, pipelines are searched in the main project"
-                " directory. You can modify this behavior by setting the"
-                " 'dagdir' in the [tool.sdag] field of the pyproject.toml"
-                " file. It can be equal to a valid compiled graph path to"
-                " skip compilation."
+                "Pipeline name, import string (e.g., 'path.to:pipeline_fn'),"
+                " or compiled JSON path to skip compilation."
             ),
         )
 
@@ -362,8 +356,7 @@ class ParserBuilder:
         status_parser = self._subparsers.add_parser(
             "status",
             help=(
-                "Read the last checkpoint of the scheduler for"
-                "a pipeline and print the status table."
+                "Read the last checkpoint and print the status of all tasks."
             ),
         )
         self._add_pipeline_name_and_hash_or_json(status_parser)
@@ -393,7 +386,7 @@ class ParserBuilder:
             "--detach",
             action=BooleanOptionalAction,
             default=False,
-            help="Run the command as a sbatch job",
+            help="Run the command as a sbatch job.",
         )
 
     def _add_log_level(self, subparser: ArgumentParser) -> Self:
@@ -410,7 +403,7 @@ class ParserBuilder:
             "--log-level",
             choices=["debug", "info", "warning", "error"],
             default=None,
-            help="Scheduler log level. Defaults to 'info'",
+            help="Log level. Defaults to 'info'.",
         )
 
         return self
@@ -434,9 +427,8 @@ class ParserBuilder:
             type=str,
             default="last",
             help=(
-                "Pipeline hash as written in the compiled JSON file."
-                " If equal to 'last', the most recently created pipeline"
-                " is considered. Defaults to 'last'"
+                "Pipeline hash. If equal to 'last', the most recently"
+                " created pipeline is considered. Defaults to 'last'."
             ),
         )
 
@@ -489,7 +481,8 @@ class ParserBuilder:
             action=BooleanOptionalAction,
             default=False,
             help=(
-                "Kill the scheduler and all running tasks if any of them fails"
+                "Kill the scheduler and all running tasks"
+                " if any of them fails."
             ),
         )
 
@@ -504,7 +497,10 @@ class ParserBuilder:
             "--dst-dir",
             type=str,
             default=None,
-            help="Destination directory. Defaults to the current one.",
+            help=(
+                "Destination directory. Defaults to the 'compiled-dagdir'"
+                " setting ('./compiled-pipelines'). It is created if missing."
+            ),
         )
 
         subparser.add_argument(
@@ -513,7 +509,7 @@ class ParserBuilder:
             type=str,
             default=None,
             help=(
-                "Compiled DAG file name. Defaults to the pipeline name."
+                "Compiled pipeline file name. Defaults to the pipeline name."
                 " The '.json' extension is appended automatically."
             ),
         )
@@ -531,7 +527,7 @@ class ParserBuilder:
             "--extra-metadata",
             type=str,
             default=None,
-            help="Extra metadata as a JSON string. Defaults to None",
+            help="Extra metadata as a JSON string. Defaults to None.",
         )
 
 

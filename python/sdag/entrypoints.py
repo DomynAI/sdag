@@ -13,8 +13,9 @@ logger = logging.getLogger(__name__)
 
 def cli():
     """CLI entrypoint."""
+    import sys
+
     from sdag.detach import detach_command
-    from sdag.exceptions import CLIError
     from sdag.parser import ExtraArgumentParser, ParserBuilder
 
     add_cwd_and_src_to_path()
@@ -36,10 +37,13 @@ def cli():
     )
 
     args, extras = parser.parse_known_args()
+
+    if "fn" not in args:
+        parser.print_help()
+        sys.exit(2)
+
     extra_parser = ExtraArgumentParser()
     extra_args = extra_parser.parse(extras)
-    if "log_level" not in args or "fn" not in args:
-        raise CLIError
 
     if args.__dict__.get("detach", False):
         detach_command()

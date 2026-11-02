@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 from sdag.compiler import master
-from sdag.exceptions import DAGNotFoundError
+from sdag.exceptions import DAGImportError, DAGNotFoundError
 from sdag.pyproj import Pyproj, get_pyproj
 from sdag.wrappers import Pipeline
 
@@ -74,8 +74,7 @@ def find_pipeline_by_name(name: str) -> Pipeline:
         module = importlib.import_module(module_path)
         pipeline = getattr(module, pipeline_name)
     except (ImportError, AttributeError) as exc:
-        msg = f"Pipeline '{name}' not found"
-        raise DAGNotFoundError(msg) from exc
+        raise DAGImportError(pipeline_name, module_path) from exc
 
     return pipeline
 
