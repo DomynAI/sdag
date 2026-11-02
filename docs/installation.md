@@ -1,23 +1,21 @@
 # Installation
 
-sdag is not available on pypi yet (it's coming soon!).
-
-=== "`uv`"
-
-    To install sdag from [GitHub](https://github.com/DomynAI/sdag):
-
-    ```sh
-    uv add "sdag @ git+https://github.com/DomynAI/sdag"
-    ```
-
-    It is also possible to install it as a tool to gain global access to it:
-
-    ```sh
-    uv tool install "sdag @ git+https://github.com/DomynAI/sdag"
-    ```
 === "`pip`"
 
-    To install sdag with pip, first clone the GitHub repository:
+    ```sh
+    pip install sdag
+    ```
+=== "`uv`"
+
+    ```sh
+    uv add sdag
+    ```
+
+To install sdag from source:
+
+=== "`pip`"
+
+    First clone the GitHub repository:
 
     ```sh
     git clone https://github.com/DomynAI/sdag.git
@@ -27,6 +25,18 @@ sdag is not available on pypi yet (it's coming soon!).
 
     ```sh
     pip install path/to/sdag
+    ```
+
+=== "`uv`"
+
+    ```sh
+    uv add "sdag @ git+https://github.com/DomynAI/sdag"
+    ```
+
+    It is also possible to install it as a tool to gain global access to it:
+
+    ```sh
+    uv tool install "sdag @ git+https://github.com/DomynAI/sdag"
     ```
 
 If you face issues in the process, you likely have to install [Rust](https://rust-lang.org/tools/install/) or update it to a more recent version via:

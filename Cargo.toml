@@ -1,6 +1,6 @@
 [package]
 name = "sdag"
-version = "0.3.0"
+version = "0.3.0-rc.1"
 edition = "2024"
 
 [lib]
@@ -23,7 +23,7 @@ uuid = {version = "1.22.0", features = ["v4"]}
 
 [dependencies.pyo3]
 version = "0.27.0"
-features = ["abi3-py38", "experimental-inspect"]
+features = ["abi3-py310", "experimental-inspect"]
 
 [lints.clippy]
 upper_case_acronyms = "allow"
