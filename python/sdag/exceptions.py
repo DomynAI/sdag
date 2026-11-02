@@ -104,6 +104,20 @@ class DAGNotFoundError(SDAGError):
     """DAG not found in path."""
 
 
+class DAGImportError(SDAGError):
+    """Failed to import DAG from the resolved module."""
+
+    def __init__(self, name: str, module_path: str):
+        """Raise the exception.
+
+        Args:
+            name (str): Pipeline name.
+            module_path (str): Pipeline module path.
+        """
+        msg = f"Failed to import pipeline '{name}' from module '{module_path}'"
+        super().__init__(msg)
+
+
 class ExtraCLIArgsError(SDAGError):
     """Extra CLI arguments are not allowed."""
 
