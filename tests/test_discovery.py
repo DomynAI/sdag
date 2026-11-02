@@ -13,9 +13,10 @@ from sdag.discovery import (
     _find_pipeline_path,
     add_cwd_and_src_to_path,
     find_all_pipelines,
+    find_pipeline_by_name,
     get_importable_module_path,
 )
-from sdag.exceptions import DAGNotFoundError
+from sdag.exceptions import DAGImportError, DAGNotFoundError
 
 
 @pytest.fixture
@@ -323,3 +324,9 @@ def test_find_extra_pipeline_import_path(
     )
 
     assert import_string == expected_string
+
+
+def test_import_wrong_pipeline_from_correct_module() -> None:
+    """The module exists but the pipeline doesn't."""
+    with pytest.raises(DAGImportError, match="wrong"):
+        find_pipeline_by_name("examples.hello:wrong")
